@@ -1,3 +1,5 @@
+#TEST
+
 # To get data from Postgres to R
 psql_select <- function(cred, query_string){
   con_postgre <- DBI::dbConnect(RPostgres::Postgres(),
