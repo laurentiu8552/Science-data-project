@@ -3,23 +3,106 @@
 
 ```{r}
 lattice::show.settings()
+library(tidyverse)
+library(caret)
+library(caTools)
+library(DataExplorer)
+library(dplyr)  
+library(ggplot2)  
+library(visdat)   
+library(recipes)  
+library(rsample)
+library(forecast)
+library(MASS)
 ```
 
 ```{r}
 # Load necessary libraries
 library(readxl)
-
-# Read the dataset
+# Load the dataset
 data <- read_excel("jysk_case_competition_final.xlsx")
-
-# View the first few rows of the dataset
-head(data)
 
 # Check the structure of the dataset to see variable types
 str(data)
 
-# Check for missing values (NAs) in each column
-colSums(is.na(data))
+# Convert the 'date' column to Date type
+data$date <- as.Date(data$date, format = "%d.%m.%Y")
+
+# Convert all non-numeric columns (besides 'date') to factors
+data[] <- lapply(data, function(x) if(is.character(x)) as.factor(x) else x)
+
+# Check the structure of the dataset to confirm the changes
+str(data)
+
+# Rename the column 'order_value_ex_vat_ex_freight' to 'Revenue'
+data <- data %>%
+  rename(revenue = order_value_ex_vat_ex_freight)
+
+str(data)
+
+# Remove rows with missing values
+data_complete_cases <- data[complete.cases(data), ]
+
+data_clean <- data_complete_cases %>% 
+  filter( revenue > 0) 
 
 
 ```
+
+```{r}
+
+analysis_date = as.Date("2024-12-31")
+
+# Run the RFM analysis
+rfm_result <- rfm_table_order(data_clean, 
+                              customer_id, 
+                              date, 
+                              revenue, 
+                              analysis_date = analysis_date)
+
+# Step 3: Visualize RFM Results
+# Heatmap visualization of RFM scores
+rfm_plot_heatmap(rfm_result)
+
+# Bar chart of RFM scores
+rfm_bar_chart(rfm_result)
+
+
+
+
+# Step 4: Segment Customers based on RFM scores
+# Define RFM segment categories
+segment_names <- c("Champions", "Loyal Customers", "Potential Loyalist", 
+                   "New Customers", "Promising", "Need Attention", "About To Sleep", 
+                   "At Risk", "Can't Lose Them", "Lost")
+
+# Set upper and lower bounds for Recency, Frequency, and Monetary
+recency_lower   <- c(4, 2, 3, 4, 3, 2, 2, 1, 1, 1)
+recency_upper   <- c(5, 5, 5, 5, 4, 3, 3, 2, 1, 2)
+frequency_lower <- c(4, 3, 1, 1, 1, 2, 1, 2, 4, 1)
+frequency_upper <- c(5, 5, 3, 1, 1, 3, 2, 5, 5, 2)
+monetary_lower  <- c(4, 3, 1, 1, 1, 2, 1, 2, 4, 1)
+monetary_upper  <- c(5, 5, 3, 1, 1, 3, 2, 5, 5, 2)
+
+# Apply segments based on RFM scores
+segment <- rfm_segment(rfm_result, 
+                       segment_names,
+                       recency_lower, recency_upper,
+                       frequency_lower, frequency_upper,
+                       monetary_lower, monetary_upper)
+
+# View the segmented customers
+head(segment)
+
+# Step 5: Visualize RFM Segments
+# Recency by segment
+rfm_plot_median_recency(segment, sort = TRUE)
+
+# Monetary by segment
+rfm_plot_median_monetary(segment, sort = TRUE)
+
+# Frequency by segment
+rfm_plot_median_frequency(segment, sort = TRUE)
+```
+
+#1. 
