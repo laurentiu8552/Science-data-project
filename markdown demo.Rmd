@@ -156,7 +156,7 @@ rfm_plot_median_monetary(segment, sort = TRUE)
 rfm_plot_median_frequency(segment, sort = TRUE)
 ```
 
-```{r APPLICATION 2 - so far some data exploration}
+```{r #APPLICATION 2 - so far some data exploration}
 #APPLICATION 2
 
 #starting with descriptive statistics
