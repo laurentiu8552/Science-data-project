@@ -364,9 +364,9 @@ ggplot(geo_count_sf) +
 
 ```
 
-## Association Rules mining
 
-```{r}
+
+```{r ## Association Rules mining}
 # read data
 data1 <- read_excel("jysk_case_competition_final.xlsx")
 
