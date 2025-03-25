@@ -415,7 +415,7 @@ trandata1$date <- NULL
 colnames(trandata1) <- c("items")
 head(trandata1)
 
-write.csv(trandata1, "mbt.csv", quote = FALSE, row.names = FALSE)
+# write.csv(trandata1, "mbt.csv", quote = FALSE, row.names = FALSE)
 
 tr <- read.transactions('mbt.csv', format = 'basket', sep = ',')
 
@@ -455,6 +455,7 @@ subRules<-association.rules[quality(association.rules)$confidence>0.4]
 
 plot(subRules)
 
-
+# change
 
 ```
+
