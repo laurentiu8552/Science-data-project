@@ -48,6 +48,8 @@ library(readxl)
 # Load the dataset
 data <- read_excel("jysk_case_competition_final.xlsx")
 
+data <- data[!duplicated(data),]
+
 # Check the structure of the dataset to see variable types
 str(data)
 
@@ -343,6 +345,10 @@ judet_geo_data <- data.frame(Judet = unique_judets_df$Judet,
                              Latitude = geocoded_judets$lat, 
                              Longitude = geocoded_judets$long)
 
+# Update Latitude and Longitude for the row "Alba"
+judet_geo_data$Latitude[judet_geo_data$Judet == "Alba"] <- 46.1559
+judet_geo_data$Longitude[judet_geo_data$Judet == "Alba"] <- 23.5556
+
 # Count occurrences of each Judet in your original dataset
 Judet_counts <- table(joined_data$Judet)
 Judet_counts_df <- data.frame(Judet = names(Judet_counts), Count = as.vector(Judet_counts))
@@ -361,10 +367,9 @@ ggplot(geo_count_sf) +
   theme_minimal() +
   theme(legend.position = "bottom")
 
+View(unique_judets_df)
 
 ```
-
-
 
 ```{r ## Association Rules mining}
 # read data
@@ -415,7 +420,7 @@ trandata1$date <- NULL
 colnames(trandata1) <- c("items")
 head(trandata1)
 
-# write.csv(trandata1, "mbt.csv", quote = FALSE, row.names = FALSE)
+write.csv(trandata1, "mbt.csv", quote = FALSE, row.names = FALSE)
 
 tr <- read.transactions('mbt.csv', format = 'basket', sep = ',')
 
@@ -457,5 +462,6 @@ plot(subRules)
 
 # change
 
-```
 
+
+```
