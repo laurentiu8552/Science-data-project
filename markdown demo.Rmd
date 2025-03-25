@@ -460,7 +460,7 @@ subRules<-association.rules[quality(association.rules)$confidence>0.4]
 
 plot(subRules)
 
-# change
+
 
 
 
