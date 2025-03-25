@@ -287,7 +287,7 @@ str(joined_data)
 #### PLOT ####
 
 # Replace NA in 'Judet' with 'Bucuresti'
-joined_data$Judet[is.na(joined_data$Judet)] <- "Bucuresti and others"
+joined_data$Judet[is.na(joined_data$Judet)] <- "Bucuresti"
 
 # Check the result to make sure NAs were replaced
 sum(is.na(joined_data$Judet))  # Should return 0 if all NAs are replaced
