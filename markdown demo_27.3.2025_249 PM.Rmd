@@ -1,0 +1,485 @@
+### lattice
+
+```{r Libraries necessary}
+library(tidyverse)
+library(caret)
+library(caTools)
+library(DataExplorer)
+library(dplyr)  
+library(ggplot2)  
+library(visdat)   
+library(recipes)  
+library(rsample)
+library(forecast)
+library(MASS)
+library(rfm)
+
+library(ggplot2)
+    library(DataExplorer)
+    library(GGally)
+    library(BTYD)
+    library(plyr)
+    library(ggplot2)
+    library(lubridate)
+    library(reshape2)
+    library(BTYDplus)
+    library(ggpubr)
+    library(Hmisc)
+    library(tibble)
+    library(Metrics)
+    library(magrittr)
+    library(dplyr)
+    library(car)
+    library(rfm)
+    library(kableExtra)
+    library(reshape2)
+    library(tidyverse)
+    library(knitr)
+    library(flexclust)
+    library(clue)
+    library(openxlsx)
+
+library(tidygeocoder)
+library(sf)
+```
+
+```{r Read the file  - data}
+library(readxl)
+# Load the dataset
+data <- read_excel("jysk_case_competition_final_Laur_manual_edit.xlsx")
+
+data <- data[!duplicated(data),]
+
+# Check the structure of the dataset to see variable types
+str(data)
+
+# Convert the 'date' column to Date type
+data$date <- as.Date(data$date, format = "%d.%m.%Y")
+
+# Convert all non-numeric columns (besides 'date') to factors
+data[] <- lapply(data, function(x) if(is.character(x)) as.factor(x) else x)
+
+# Check the structure of the dataset to confirm the changes
+str(data)
+
+# Rename the column 'order_value_ex_vat_ex_freight' to 'Revenue'
+data <- data %>%
+  dplyr::rename(revenue = order_value_ex_vat_ex_freight)
+
+data <- data %>% 
+  filter(!is.na(customer_id) & revenue > 0)
+
+sum(is.na(data))
+
+data <- data[complete.cases(data), ]
+
+sum(is.na(data))
+
+str(data)
+```
+
+```{r #APPLICATION1}
+
+#Cleaning of data
+
+#Cleaning the data on na customers but also revenue above 0
+data_clean_rfm <- data %>% 
+  filter(!is.na(customer_id) & revenue > 0)
+
+
+#Visualization of the 3 rfm variables
+
+# Revenue histogram
+hist(data_clean_rfm$revenue, main = "Histogram of Revenue", col = "blue", border = "black")
+# Check for NAs
+sum(is.na(data_clean_rfm$revenue))      # Count NAs in revenue
+
+
+
+# Customer ID bar plot
+barplot(table(data_clean_rfm$customer_id), main = "Customer ID Distribution", col = "blue")
+sum(is.na(data_clean_rfm$customer_id))  # Count NAs in customer_id
+
+
+# Date bar plot
+barplot(table(data_clean_rfm$date), main = "Date Distribution", col = "blue")
+sum(is.na(data_clean_rfm$date))         # Count NAs in date
+
+#CAN BE SEEN no NAs and also no negative variables, can proceed with the RFM model running
+
+```
+
+```{r #Application 1 - RFM model}
+#RFM model 
+
+analysis_date = as.Date("2024-12-31")
+
+# Run the RFM analysis
+rfm_result <- rfm_table_order(data_clean_rfm, 
+                              customer_id, 
+                              date, 
+                              revenue, 
+                              analysis_date = analysis_date)
+
+# Step 3: Visualize RFM Results
+# Heatmap visualization of RFM scores
+rfm_plot_heatmap(rfm_result)
+
+# Bar chart of RFM scores
+rfm_bar_chart(rfm_result)
+
+
+
+
+# Step 4: Segment Customers based on RFM scores
+# Define RFM segment categories
+segment_names <- c("Champions", "Loyal Customers", "Potential Loyalist", 
+                   "New Customers", "Promising", "Need Attention", "About To Sleep", 
+                   "At Risk", "Can't Lose Them", "Lost")
+
+# Set upper and lower bounds for Recency, Frequency, and Monetary
+recency_lower   <- c(4, 2, 3, 4, 3, 2, 2, 1, 1, 1)
+recency_upper   <- c(5, 5, 5, 5, 4, 3, 3, 2, 1, 2)
+frequency_lower <- c(4, 3, 1, 1, 1, 2, 1, 2, 4, 1)
+frequency_upper <- c(5, 5, 3, 1, 1, 3, 2, 5, 5, 2)
+monetary_lower  <- c(4, 3, 1, 1, 1, 2, 1, 2, 4, 1)
+monetary_upper  <- c(5, 5, 3, 1, 1, 3, 2, 5, 5, 2)
+
+# Apply segments based on RFM scores
+segment <- rfm_segment(rfm_result, 
+                       segment_names,
+                       recency_lower, recency_upper,
+                       frequency_lower, frequency_upper,
+                       monetary_lower, monetary_upper)
+
+# View the segmented customers
+head(segment)
+
+# Step 5: Visualize RFM Segments
+# Recency by segment
+rfm_plot_median_recency(segment, sort = TRUE)
+
+# Monetary by segment
+rfm_plot_median_monetary(segment, sort = TRUE)
+
+# Frequency by segment
+rfm_plot_median_frequency(segment, sort = TRUE)
+```
+
+```{r #APPLICATION 2 - so far some data exploration}
+#APPLICATION 2
+
+#starting with descriptive statistics
+
+#Cleaning the data on na customers but also revenue above 0
+data_application2 <- data %>% 
+  filter(!is.na(customer_id))
+
+#DESCRIPTIVE STATISTICS
+
+#### NR of orders per month ####
+# Extract month and year from the date
+data_application2$date_month <- format(as.Date(data_application2$date), "%Y-%m")
+
+# Plot number of orders per month
+ggplot(data_application2) + 
+  geom_bar(aes(x = date_month), colour = "grey20", fill = "grey80") + 
+  ggtitle("Orders per Month") + 
+  xlab("Month") +
+  ylab("Number of Orders") +
+  theme(panel.background = element_rect(fill = "grey94")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text = element_text(size = 14, angle = 45, hjust = 1),  # Rotate text to 45 degrees
+        axis.title = element_text(size = 14))
+
+
+#### NR of orders per customer####
+
+# Truncate orders per customer
+# Step 1: Calculate the number of orders per customer
+order_count_per_customer <- table(data_application2$customer_id)
+
+# Step 2: Truncate the number of orders to 15
+order_count_truncate <- pmin(order_count_per_customer, 15)
+
+# Step 3: Create a data frame for plotting
+order_summary <- as.data.frame(table(order_count_truncate))
+
+# Step 4: Plot the number of orders per customer using a bar plot
+ggplot(order_summary, aes(x = as.factor(order_count_truncate), y = Freq)) + 
+  geom_bar(stat = "identity", fill = "grey80", colour = "grey20") + 
+  ggtitle("Orders per Customer (Truncated to 15)") +  
+  xlab("Total Number of Orders") +
+  ylab("Number of Customers") +
+  theme(panel.background = element_rect(fill = "grey94")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text = element_text(size = 14), axis.title = element_text(size = 14))
+
+####  Days Between Orders  ####
+
+# Sort data by customer_id and date
+data_application2 <- data_application2 %>%
+  arrange(customer_id, date)
+
+# Calculate days since the last order for each customer
+data_application2 <- data_application2 %>%
+  group_by(customer_id) %>%
+  mutate(days_since_last_order = as.numeric(difftime(date, lag(date), units = "days"))) %>%
+  ungroup()
+
+# Replace NA values (for the first order) with 0
+data_application2$days_since_last_order[is.na(data_application2$days_since_last_order)] <- 0
+
+# Remove customers with only one order (days_since_last_order = 0)
+data_application2_filtered <- data_application2 %>%
+  filter(days_since_last_order > 0)
+
+# Now create the subset for the relevant columns (order_id, customer_id, days_since_last_order)
+daysdata <- subset(data_application2_filtered[, c("order_id", "customer_id", "days_since_last_order")])
+
+# Calculate the mean of the days_since_last_order for each customer
+daysdatamean <- aggregate(days_since_last_order ~ customer_id, data = daysdata, FUN = mean)
+
+# Plot histogram of the days between orders
+ggplot(daysdatamean) + 
+  geom_histogram(aes(x = days_since_last_order), binwidth = 5, colour = "grey20", fill = "grey80") +
+  ggtitle("Days Between Orders customers with at least 2 orders") +  
+  xlab("Average Days Between Orders") +
+  ylab("Number of Customers") +
+  theme(panel.background = element_rect(fill = "grey94")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text = element_text(size = 17, face = "plain"),
+        axis.title = element_text(size = 17, face = "plain"),
+        title = element_text(size = 16, face = "plain"))
+
+
+#### Postal code distribution - also matching with acutal cities #####
+
+
+# Read the postal codes data file
+postal_codes <- read.csv("postal_codes_Romania.csv")
+
+# Convert all columns to factors in the postal_codes dataframe
+postal_codes[] <- lapply(postal_codes, as.factor)
+
+# Convert all non-numeric columns to factors in the data_application2 dataframe
+data_application2[] <- lapply(data_application2, function(x) if (is.character(x)) as.factor(x) else x)
+
+# Ensure that the postal_code and customer_zip_code are both of the same type (character for this case)
+postal_codes$postal_code <- as.character(postal_codes$postal_code)
+data_application2$customer_zip_code <- as.character(data_application2$customer_zip_code)
+
+# Filter out rows with NA in both customer_zip_code and postal_code columns
+data_application2_filtered <- data_application2 %>%
+  filter(!is.na(customer_zip_code))  # Remove rows with NA in customer_zip_code
+app2_subset <- subset(data_application2_filtered[, c("customer_id", "customer_zip_code")])
+app2_subset <- app2_subset%>%
+  dplyr::rename(postal_code = customer_zip_code)
+
+str(app2_subset)
+
+#filter the postal one
+postal_codes_filtered <- postal_codes %>%
+  filter(!is.na(postal_code))  # Remove rows with NA in postal_code
+postal_subset <- subset(postal_codes_filtered[, c("postal_code", "Judet")])
+
+str(postal_subset)
+
+# Assuming app2_subset and postal_subset are already defined
+# Join the app2_subset with postal_subset based on the postal_code
+joined_data <- app2_subset %>%
+  dplyr::left_join(postal_subset, by = "postal_code") %>%
+  mutate(matched_postal_code = coalesce(postal_code, postal_code))
+
+
+str(joined_data)
+
+#### PLOT ####
+
+# Replace NA in 'Judet' with 'Bucuresti'
+joined_data$Judet[is.na(joined_data$Judet)] <- "Bucuresti"
+
+# Check the result to make sure NAs were replaced
+sum(is.na(joined_data$Judet))  # Should return 0 if all NAs are replaced
+
+
+
+# Ensure 'Judet' is treated as a character and 'customer_id' is numeric
+joined_data$Judet <- as.character(joined_data$Judet)
+
+# Ensure the encoding of Judet is correct (UTF-8)
+joined_data$Judet <- iconv(joined_data$Judet, from = "UTF-8", to = "ASCII//TRANSLIT")
+
+# Count the occurrences of each Judet
+Judet_counts <- table(joined_data$Judet)
+
+# Sort the counts in descending order
+Judet_counts_sorted <- sort(Judet_counts, decreasing = TRUE)
+
+# Create a bar plot of the sorted Judet counts
+barplot_heights <- barplot(Judet_counts_sorted, 
+        main = "Count of Customers per Judet (Sorted)", 
+        xlab = "Judet", 
+        ylab = "Count of Customers", 
+        las = 2,  # Rotate x-axis labels for readability
+        col = "steelblue",
+        cex.names = 0.6)  # Reduce the size of X-axis labels
+
+# Count how many NAs are in the 'Judet' column
+na_count_judet <- sum(is.na(joined_data$Judet))
+
+# Print the result
+print(na_count_judet)
+
+
+#### BONUS #####
+
+# Install and load the necessary libraries
+# install.packages("tidygeocoder")
+# install.packages("sf")
+# install.packages("ggplot2")
+library(tidygeocoder)
+library(sf)
+library(ggplot2)
+
+# Get unique Judet names (remove duplicates) and convert to dataframe
+unique_judets_df <- data.frame(Judet = unique(joined_data$Judet))
+
+# Geocode Judet names to get latitude and longitude
+# Specify 'address' column explicitly in geocode function
+geocoded_judets <- tidygeocoder::geocode(unique_judets_df, address = "Judet", method = 'osm')
+
+# Merge geocoded data back with customer data to include coordinates
+judet_geo_data <- data.frame(Judet = unique_judets_df$Judet, 
+                             Latitude = geocoded_judets$lat, 
+                             Longitude = geocoded_judets$long)
+
+# Update Latitude and Longitude for the row "Alba"
+judet_geo_data$Latitude[judet_geo_data$Judet == "Alba"] <- 46.1559
+judet_geo_data$Longitude[judet_geo_data$Judet == "Alba"] <- 23.5556
+
+# Count occurrences of each Judet in your original dataset
+Judet_counts <- table(joined_data$Judet)
+Judet_counts_df <- data.frame(Judet = names(Judet_counts), Count = as.vector(Judet_counts))
+
+# Merge the counts with the geocoded data
+geo_count_data <- merge(judet_geo_data, Judet_counts_df, by = "Judet")  # Convert to sf object for spatial plotting
+
+# Convert the data to an sf object for spatial plotting
+geo_count_sf <- st_as_sf(geo_count_data, coords = c("Longitude", "Latitude"), crs = 4326)
+
+# Plot the map with customer counts
+ggplot(geo_count_sf) +
+  geom_sf(aes(color = Count, size = Count), alpha = 0.7) +  # Customize size/color of points
+  scale_color_viridis_c() +  # Color scale for customer counts
+  labs(title = "Customer Counts per Judet", fill = "Customer Count") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+View(unique_judets_df)
+
+```
+
+## Association Rules Mining 
+
+```{r ## Association Rules mining new}
+# Take dataset
+data_asm <- data
+
+#Cleaning the data on na customers but also revenue above 0
+data_asm <- data_asm %>% 
+  filter(!is.na(customer_id) & revenue > 0)
+
+skim(data_asm)
+
+```
+
+```{r}
+transacData <- plyr::ddply(data_asm, c("order_id","date"),
+                           function(df1)paste(df1$product_title,collapse = ","))
+
+
+head(transacData)
+
+transacData$order_id <- NULL
+
+transacData$date <- NULL
+
+colnames(transacData) <- c("items")
+head(transacData)
+
+basket_list <- strsplit(transacData$items, ",")
+
+library(arules)
+tr <- as(basket_list, "transactions")
+
+summary(tr)
+
+```
+
+
+```{r}
+
+itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
+                  main="Absolute Item Frequency Plot")
+
+itemFrequencyPlot(tr,topN=20,type="relative",col=brewer.pal(8,'Pastel2'),
+                  main="Relative Item Frequency Plot")
+
+```
+
+```{r}
+# Look for association rules
+
+# somewhat strict confidence
+association.rules <- apriori(tr, 
+                             parameter = list(supp=0.001, conf=0.8,maxlen=10))
+
+summary(association.rules)
+
+```
+
+```{r}
+inspect(association.rules)
+
+sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
+
+inspect(sortedRules1) 
+```
+
+
+
+```{r}
+# confidence set lower at 0.6
+# this has some implications on the statistical 
+relaxed.rules <- apriori(tr, 
+                             parameter = list(supp=0.0005, conf=0.6,maxlen=10))
+summary(relaxed.rules)
+
+inspect(relaxed.rules)
+
+sortedRules2 <- sort(relaxed.rules,by="lift",decreasing=TRUE)
+
+inspect(sortedRules2) 
+
+```
+
+
+```{r}
+# plot association rules - relaxed
+
+subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
+plot(subRules)
+```
+
+
+```{r}
+# interactive plot
+
+plot(subRules, method = "two-key plot")
+
+```
+
+
+
+
