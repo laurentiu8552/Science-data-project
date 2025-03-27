@@ -371,7 +371,113 @@ View(unique_judets_df)
 
 ```
 
+## Association Rules Mining 
+
+```{r ## Association Rules mining new}
+# Take dataset
+data_asm <- data
+
+#Cleaning the data on na customers but also revenue above 0
+data_asm <- data_asm %>% 
+  filter(!is.na(customer_id) & revenue > 0)
+
+skim(data_asm)
+
+```
+
+```{r}
+transacData <- plyr::ddply(data_asm, c("order_id","date"),
+                           function(df1)paste(df1$product_title,collapse = ","))
+
+
+head(transacData)
+
+transacData$order_id <- NULL
+
+transacData$date <- NULL
+
+colnames(transacData) <- c("items")
+head(transacData)
+
+basket_list <- strsplit(transacData$items, ",")
+
+library(arules)
+tr <- as(basket_list, "transactions")
+
+summary(tr)
+
+```
+
+
+```{r}
+
+itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
+                  main="Absolute Item Frequency Plot")
+
+itemFrequencyPlot(tr,topN=20,type="relative",col=brewer.pal(8,'Pastel2'),
+                  main="Relative Item Frequency Plot")
+
+```
+
+```{r}
+# Look for association rules
+
+# somewhat strict confidence
+association.rules <- apriori(tr, 
+                             parameter = list(supp=0.001, conf=0.8,maxlen=10))
+
+summary(association.rules)
+
+```
+
+```{r}
+inspect(association.rules)
+
+sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
+
+inspect(sortedRules1) 
+```
+
+
+
+```{r}
+# confidence set lower at 0.6
+# this has some implications on the statistical 
+relaxed.rules <- apriori(tr, 
+                             parameter = list(supp=0.0005, conf=0.6,maxlen=10))
+summary(relaxed.rules)
+
+inspect(relaxed.rules)
+
+sortedRules2 <- sort(relaxed.rules,by="lift",decreasing=TRUE)
+
+inspect(sortedRules2) 
+
+```
+
+
+```{r}
+# plot association rules - relaxed
+
+subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
+plot(subRules)
+```
+
+
+```{r}
+# interactive plot
+
+plot(subRules, method = "two-key plot")
+
+```
+
+
+
+
 ```{r ## Association Rules mining}
+
+# This is deprecated - should be deleted!!!!
+
 # read data
 data1 <- read_excel("jysk_case_competition_final.xlsx")
 
