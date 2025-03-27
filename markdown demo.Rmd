@@ -385,7 +385,7 @@ skim(data_asm)
 
 ```
 
-```{r}
+```{r comment }
 transacData <- plyr::ddply(data_asm, c("order_id","date"),
                            function(df1)paste(df1$product_title,collapse = ","))
 
@@ -409,7 +409,7 @@ summary(tr)
 ```
 
 
-```{r}
+```{r item frequency}
 
 itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
                   main="Absolute Item Frequency Plot")
@@ -419,7 +419,7 @@ itemFrequencyPlot(tr,topN=20,type="relative",col=brewer.pal(8,'Pastel2'),
 
 ```
 
-```{r}
+```{r association rules}
 # Look for association rules
 
 # somewhat strict confidence
@@ -430,7 +430,7 @@ summary(association.rules)
 
 ```
 
-```{r}
+```{r rules}
 inspect(association.rules)
 
 sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
@@ -440,7 +440,7 @@ inspect(sortedRules1)
 
 
 
-```{r}
+```{r sorted rules}
 # confidence set lower at 0.6
 # this has some implications on the statistical 
 relaxed.rules <- apriori(tr, 
@@ -456,7 +456,7 @@ inspect(sortedRules2)
 ```
 
 
-```{r}
+```{r plots}
 # plot association rules - relaxed
 
 subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
@@ -464,13 +464,30 @@ plot(subRules)
 ```
 
 
-```{r}
+```{r plots}
 # interactive plot
 
 plot(subRules, method = "two-key plot")
 
 ```
 
+## classical clustering algorithms
+```{r some comment}
+
+#Cleaning the data on na customers but also revenue above 0
+data2 <- data %>% 
+  filter(!is.na(customer_id) & revenue > 0)
+
+library(flexclust)
+library(partykit)
+
+names(data2)
+
+```
+
+```{r some comment}
 
 
+
+```
 
