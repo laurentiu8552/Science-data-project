@@ -39,8 +39,8 @@ library(ggplot2)
     library(clue)
     library(openxlsx)
 
-library("tidygeocoder")
-library("sf")
+library"tidygeocoder)
+library(sf)
 ```
 
 ```{r Read the file  - data}
@@ -65,6 +65,11 @@ str(data)
 # Rename the column 'order_value_ex_vat_ex_freight' to 'Revenue'
 data <- data %>%
   dplyr::rename(revenue = order_value_ex_vat_ex_freight)
+
+data <- data %>% 
+  filter(!is.na(customer_id) & revenue > 0)
+
+sum(is.na(data))
 
 str(data)
 ```
@@ -385,7 +390,7 @@ skim(data_asm)
 
 ```
 
-```{r comment }
+```{r}
 transacData <- plyr::ddply(data_asm, c("order_id","date"),
                            function(df1)paste(df1$product_title,collapse = ","))
 
@@ -409,7 +414,7 @@ summary(tr)
 ```
 
 
-```{r item frequency}
+```{r}
 
 itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
                   main="Absolute Item Frequency Plot")
@@ -419,7 +424,7 @@ itemFrequencyPlot(tr,topN=20,type="relative",col=brewer.pal(8,'Pastel2'),
 
 ```
 
-```{r association rules}
+```{r}
 # Look for association rules
 
 # somewhat strict confidence
@@ -430,7 +435,7 @@ summary(association.rules)
 
 ```
 
-```{r rules}
+```{r}
 inspect(association.rules)
 
 sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
@@ -440,7 +445,7 @@ inspect(sortedRules1)
 
 
 
-```{r sorted rules}
+```{r}
 # confidence set lower at 0.6
 # this has some implications on the statistical 
 relaxed.rules <- apriori(tr, 
@@ -456,7 +461,7 @@ inspect(sortedRules2)
 ```
 
 
-```{r plots}
+```{r}
 # plot association rules - relaxed
 
 subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
@@ -464,30 +469,13 @@ plot(subRules)
 ```
 
 
-```{r plots}
+```{r}
 # interactive plot
 
 plot(subRules, method = "two-key plot")
 
 ```
 
-## classical clustering algorithms
-```{r some comment}
-
-#Cleaning the data on na customers but also revenue above 0
-data2 <- data %>% 
-  filter(!is.na(customer_id) & revenue > 0)
-
-library(flexclust)
-library(partykit)
-
-names(data2)
-
-```
-
-```{r some comment}
 
 
-
-```
 
