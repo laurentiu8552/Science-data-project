@@ -42,7 +42,6 @@ library(ggplot2)
 library(tidygeocoder)
 library(sf)
 library(skimr)
-install.packages("arulesViz")
 ```
 
 ```{r Read the file  - data}
