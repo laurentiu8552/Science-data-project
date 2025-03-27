@@ -41,6 +41,8 @@ library(ggplot2)
 
 library(tidygeocoder)
 library(sf)
+library(skimr)
+install.packages("arulesViz")
 ```
 
 ```{r Read the file  - data}
@@ -420,6 +422,8 @@ summary(tr)
 
 ```{r}
 
+library(RColorBrewer)
+
 itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
                   main="Absolute Item Frequency Plot")
 
@@ -467,6 +471,8 @@ inspect(sortedRules2)
 
 ```{r}
 # plot association rules - relaxed
+#install.packages("arulesViz")
+library(arulesViz)
 
 subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
 plot(subRules)
