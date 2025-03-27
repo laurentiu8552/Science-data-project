@@ -398,7 +398,6 @@ summary(data1)
 library(arules)
 library(dplyr)
 
-# data1 <- data1[complete.cases(data1),]
 
 str(data1)
 
