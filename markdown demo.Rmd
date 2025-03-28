@@ -56,6 +56,10 @@ str(data)
 # Convert the 'date' column to Date type
 data$date <- as.Date(data$date, format = "%d.%m.%Y")
 
+#Including 
+january_first_sum <- sum(data$order_value_ex_vat_ex_freight[data$date == "2024-01-01"])
+
+print(paste("Total order value for January 1st: $", round(january_first_sum, 2)))
 # Convert all non-numeric columns (besides 'date') to factors
 data[] <- lapply(data, function(x) if(is.character(x)) as.factor(x) else x)
 
@@ -69,9 +73,15 @@ data <- data %>%
 data <- data %>% 
   filter(!is.na(customer_id) & revenue > 0)
 
+january_first_sum_after_cleaning <- sum(data$revenue[data$date == "2024-01-01"])
+
 sum(is.na(data))
 
 str(data)
+
+
+# This basically proves that their own case descriptions is wrong where they say they have 420k rows and 170k orders. Based on result for 1st day, we can only reach that if we remove duplicates, which contradicts what they write in their own description.
+# January 1st sums to 338135 without data cleaning which includes the result row of 169 068. After removing that and cleaning NA's what we get is 167 614 so
 ```
 
 ```{r #APPLICATION1}
@@ -376,7 +386,7 @@ View(unique_judets_df)
 
 ```
 
-## Association Rules Mining 
+## Association Rules Mining
 
 ```{r ## Association Rules mining new}
 # Take dataset
@@ -413,7 +423,6 @@ summary(tr)
 
 ```
 
-
 ```{r}
 
 itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
@@ -443,8 +452,6 @@ sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
 inspect(sortedRules1) 
 ```
 
-
-
 ```{r}
 # confidence set lower at 0.6
 # this has some implications on the statistical 
@@ -460,7 +467,6 @@ inspect(sortedRules2)
 
 ```
 
-
 ```{r}
 # plot association rules - relaxed
 
@@ -468,14 +474,9 @@ subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
 plot(subRules)
 ```
 
-
 ```{r}
 # interactive plot
 
 plot(subRules, method = "two-key plot")
 
 ```
-
-
-
-
