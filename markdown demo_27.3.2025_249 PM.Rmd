@@ -485,6 +485,17 @@ plot(subRules, method = "two-key plot")
 
 ```
 
+```{r testing the summing up of the customer_id and their respective revenue}
+
+library(dplyr)
+
+customer_revenue <- data %>%
+  group_by(customer_id) %>%
+  summarise(total_revenue = sum(revenue, na.rm = TRUE))
+
+# use this if you want to see in csv file write.csv(customer_revenue, "customer_revenue.csv", row.names = FALSE)
+
+```
 
 
 
