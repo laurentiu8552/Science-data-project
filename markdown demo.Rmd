@@ -785,7 +785,7 @@ barplot(table(data_clean_rfm$date), main = "Date Distribution", col = "blue")
 sum(is.na(data_clean_rfm$date))         # Count NAs in date
 
 #CAN BE SEEN no NAs and also no negative variables, can proceed with the RFM model running
-
+ 
 ```
 
 ```{r #Application 1 - RFM model}
