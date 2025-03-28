@@ -497,5 +497,47 @@ customer_revenue <- data %>%
 
 ```
 
+```{r clv model trying}
 
+library(dplyr)
+library(lubridate)
+### CLV model 
+
+# Calculate CLV metrics for the training data
+clv_data <- train_data %>%
+  group_by(customer_id) %>%
+  dplyr::summarise(
+    frequency = n(),  # Number of orders
+    recency = as.numeric(max(date) - min(date)),  # Days between first & last order
+    mean_monetary_value = mean(revenue),  # Average revenue per order
+    total_revenue = sum(revenue),  # Total revenue per customer
+    last_order_date = max(date)  # Most recent order date
+  ) %>%
+  ungroup()
+
+# Display the first few rows of CLV data
+head(clv_data)
+
+# Optionally, you can visualize the metrics to explore patterns.
+# Let's plot the frequency and recency
+library(ggplot2)
+
+# Frequency plot
+ggplot(clv_data, aes(x = frequency)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  labs(title = "Distribution of Order Frequency", x = "Number of Orders", y = "Count")
+
+# Recency plot
+ggplot(clv_data, aes(x = recency)) +
+  geom_histogram(binwidth = 1, fill = "green", color = "black") +
+  labs(title = "Distribution of Recency (Days)", x = "Days Since First Order", y = "Count")
+
+# Mean Monetary Value plot
+ggplot(clv_data, aes(x = mean_monetary_value)) +
+  geom_histogram(binwidth = 10, fill = "orange", color = "black") +
+  labs(title = "Distribution of Mean Monetary Value", x = "Average Revenue per Order", y = "Count")
+
+
+
+```
 
