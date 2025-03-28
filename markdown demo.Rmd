@@ -72,6 +72,8 @@ data <- data %>%
 sum(is.na(data))
 
 str(data)
+
+skim(data)
 ```
 
 ```{r #APPLICATION1}
