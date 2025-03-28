@@ -69,9 +69,13 @@ str(data)
 # Rename the column 'order_value_ex_vat_ex_freight' to 'Revenue'
 data <- data %>%
   dplyr::rename(revenue = order_value_ex_vat_ex_freight)
+# impute NA customer id's with 999999999 for now. will be removed in CLV probably
+data <- data %>%
+  mutate(customer_id = replace_na(customer_id, 9999999999))
 
+# only revenue greater than 0, returns are excluded
 data <- data %>% 
-  filter(!is.na(customer_id) & revenue > 0)
+  filter(revenue > 0)
 
 january_first_sum_after_cleaning <- sum(data$revenue[data$date == "2024-01-01"])
 
@@ -81,7 +85,7 @@ str(data)
 
 
 # This basically proves that their own case descriptions is wrong where they say they have 420k rows and 170k orders. Based on result for 1st day, we can only reach that if we remove duplicates, which contradicts what they write in their own description.
-# January 1st sums to 338135 without data cleaning which includes the result row of 169 068. After removing that and cleaning NA's what we get is 167 614 so
+# January 1st sums to 338135 without data cleaning which includes the result row of 169 068. After removing that and cleaning NA's what we get is 167 614 which is approx. equal to the result. We then conclude that it matches so the duplicate rows should indeed be removed!
 ```
 
 ```{r #APPLICATION1}
@@ -390,6 +394,7 @@ View(unique_judets_df)
 
 ```{r ## Association Rules mining new}
 # Take dataset
+library(skimr)
 data_asm <- data
 
 #Cleaning the data on na customers but also revenue above 0
@@ -424,7 +429,7 @@ summary(tr)
 ```
 
 ```{r}
-
+library(RColorBrewer)
 itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
                   main="Absolute Item Frequency Plot")
 
@@ -469,7 +474,7 @@ inspect(sortedRules2)
 
 ```{r}
 # plot association rules - relaxed
-
+library(arulesViz)
 subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
 plot(subRules)
 ```
