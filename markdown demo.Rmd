@@ -89,6 +89,8 @@ str(data)
 
 # This basically proves that their own case descriptions is wrong where they say they have 420k rows and 170k orders. Based on result for 1st day, we can only reach that if we remove duplicates, which contradicts what they write in their own description.
 # January 1st sums to 338135 without data cleaning which includes the result row of 169 068. After removing that and cleaning NA's what we get is 167 614 which is approx. equal to the result. We then conclude that it matches so the duplicate rows should indeed be removed!
+# There is also an anomaly which contradicts what they write in the case description.
+# There are 424.965 rows split into 173.275 orders, meaning ∼2,5 items per order. They say that but there are anomalies where in 1 row they have the revenue exactly 5 times higher than for the same product in other rows. This implies 5 of those products was purchased at that time. This contradicts the 1 row = 1 product bought logic they imply. The first point in this comment is also a contradiction.
 ```
 
 ```{r #APPLICATION1}
