@@ -499,12 +499,16 @@ customer_revenue <- data %>%
 
 ```{r clv model trying}
 
+##### Getting the newcomer variable 
+
+
+
 library(dplyr)
 library(lubridate)
 ### CLV model 
 
 # Calculate CLV metrics for the training data
-clv_data <- train_data %>%
+clv_data <- data %>%
   group_by(customer_id) %>%
   dplyr::summarise(
     frequency = n(),  # Number of orders
@@ -514,6 +518,16 @@ clv_data <- train_data %>%
     last_order_date = max(date)  # Most recent order date
   ) %>%
   ungroup()
+
+#### Adding the newcomer variable
+library(dplyr)
+
+clv_data <- clv_data %>%
+  mutate(newcomer = if_else(frequency == 1, 1, 0))
+
+
+
+
 
 # Display the first few rows of CLV data
 head(clv_data)
@@ -537,7 +551,21 @@ ggplot(clv_data, aes(x = mean_monetary_value)) +
   geom_histogram(binwidth = 10, fill = "orange", color = "black") +
   labs(title = "Distribution of Mean Monetary Value", x = "Average Revenue per Order", y = "Count")
 
+summary(clv_data)
 
+
+
+
+#### splitting the data
+# Filter training data based on date range
+train_data <- clv_data %>%
+  filter(last_order_date >= "2024-01-01" & last_order_date <= "2024-09-01")
+
+# Filter test data for the remaining dates
+test_data <- clv_data %>%
+  filter(last_order_date > "2024-09-01")
+
+str(clv_data)
 
 ```
 
