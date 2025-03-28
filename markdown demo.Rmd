@@ -77,6 +77,8 @@ data <- data %>%
 data <- data %>% 
   filter(revenue > 0)
 
+
+
 # filtering out Result rows
 data <- data %>%
   filter(customer_id != "Result")
