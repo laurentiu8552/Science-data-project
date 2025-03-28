@@ -39,7 +39,7 @@ library(ggplot2)
     library(clue)
     library(openxlsx)
 
-library"tidygeocoder)
+library(tidygeocoder)
 library(sf)
 ```
 
@@ -77,12 +77,15 @@ data <- data %>%
 data <- data %>% 
   filter(revenue > 0)
 
+# filtering out Result rows
+data <- data %>%
+  filter(customer_id != "Result")
+
 january_first_sum_after_cleaning <- sum(data$revenue[data$date == "2024-01-01"])
 
 sum(is.na(data))
 
 str(data)
-
 
 # This basically proves that their own case descriptions is wrong where they say they have 420k rows and 170k orders. Based on result for 1st day, we can only reach that if we remove duplicates, which contradicts what they write in their own description.
 # January 1st sums to 338135 without data cleaning which includes the result row of 169 068. After removing that and cleaning NA's what we get is 167 614 which is approx. equal to the result. We then conclude that it matches so the duplicate rows should indeed be removed!
