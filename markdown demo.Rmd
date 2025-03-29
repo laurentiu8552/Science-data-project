@@ -1433,6 +1433,8 @@ plot(subRules, method = "two-key plot")
 ## Recommender systems
 
 ```{r}
+data_rcs <- data
+
 
 
 
