@@ -762,14 +762,13 @@ sum(is.na(data))
 skimr::skim(data)
 ```
 
-
 ## RFM
 
 ```{r #APPLICATION1}
 
 #Visualization of the 3 rfm variables
 
-data_clean_rfm = data
+data_clean_rfm <- data[data$customer_id != 9999999999, ]
 
 # Revenue histogram
 hist(data_clean_rfm$revenue, main = "Histogram of Revenue", col = "blue", border = "black")
@@ -779,7 +778,7 @@ sum(is.na(data_clean_rfm$revenue))      # Count NAs in revenue
 
 
 # Customer ID bar plot - Delete later, useless, including the NA checks
-cust_freq <- table(data_clean_rfm$customer_id[data_clean_rfm$customer_id != 9999999999])
+cust_freq <- table(data_clean_rfm$customer_id)
 
 # Filter to only those with frequency >= 10
 cust_freq_filtered <- cust_freq[cust_freq >= 35]
@@ -796,61 +795,161 @@ sum(is.na(data_clean_rfm$date))         # Count NAs in date
 ```
 
 ```{r #Application 1 - RFM model}
-#RFM model 
+# 1. Aggregate to Order-Level Data
+order_level_data <- data_clean_rfm %>%
+  dplyr::select(date, order_id, customer_id, revenue) %>%  # keep only relevant columns
+  dplyr::group_by(order_id, customer_id, date) %>%         # group by order_id, customer_id, and date
+  dplyr::summarise(total_revenue = sum(revenue, na.rm = TRUE), .groups = "drop")  # sum revenue and ungroup
 
-analysis_date = as.Date("2024-12-31")
+# 2. Set Analysis Date (using the day after your last order date)
+analysis_date <- as.Date("2025-01-01")  
 
-# Run the RFM analysis
-rfm_result <- rfm_table_order(data_clean_rfm, 
+# 3. Run the RFM Analysis using the Aggregated Data
+# Note: We now use 'total_revenue' instead of 'revenue'
+rfm_result <- rfm_table_order(order_level_data, 
                               customer_id, 
                               date, 
-                              revenue, 
+                              total_revenue, 
                               analysis_date = analysis_date)
 
-# Step 3: Visualize RFM Results
-# Heatmap visualization of RFM scores
+# 4. Visualize RFM Results
 rfm_plot_heatmap(rfm_result)
+rfm_plot_bar_chart(rfm_result)
 
-# Bar chart of RFM scores
-rfm_bar_chart(rfm_result)
-
-
-
-
-# Step 4: Segment Customers based on RFM scores
-# Define RFM segment categories
+# 5. Define RFM Segment Categories and Thresholds
 segment_names <- c("Champions", "Loyal Customers", "Potential Loyalist", 
                    "New Customers", "Promising", "Need Attention", "About To Sleep", 
                    "At Risk", "Can't Lose Them", "Lost")
 
-# Set upper and lower bounds for Recency, Frequency, and Monetary
+# For Recency
+summary(rfm_result$rfm$recency_score)
+hist(rfm_result$rfm$recency_score, main = "Recency Distribution", xlab = "Recency")
+
+# For Frequency
+summary(rfm_result$rfm$frequency_score)
+hist(rfm_result$rfm$frequency_score, main = "Frequency Distribution", xlab = "Frequency")
+
+# For Monetary
+summary(rfm_result$rfm$monetary_score)
+hist(rfm_result$rfm$monetary_score, main = "Monetary Distribution", xlab = "Monetary")
+
+quantile(rfm_result$rfm$recency_score, probs = seq(0, 1, 0.2))
+quantile(rfm_result$rfm$frequency_score, probs = seq(0, 1, 0.2))
+quantile(rfm_result$rfm$monetary_score, probs = seq(0, 1, 0.2))
+
+# For each customer, count the number of orders (each row in order_level_data is an order)
+customer_orders <- order_level_data %>%
+  dplyr::group_by(customer_id) %>%
+  dplyr::summarise(num_orders = dplyr::n(), .groups = "drop")
+
+# Count how many customers fall into each order count bucket
+freq_dist <- customer_orders %>%
+  dplyr::count(num_orders)
+
+print(freq_dist)
+
+
 recency_lower   <- c(4, 2, 3, 4, 3, 2, 2, 1, 1, 1)
 recency_upper   <- c(5, 5, 5, 5, 4, 3, 3, 2, 1, 2)
-frequency_lower <- c(4, 3, 1, 1, 1, 2, 1, 2, 4, 1)
-frequency_upper <- c(5, 5, 3, 1, 1, 3, 2, 5, 5, 2)
+frequency_lower <- c(5, 5, 3, 1, 1, 1, 1, 1, 1, 1)
+frequency_upper <- c(5, 5, 5, 1, 1, 1, 1, 1, 1, 1)
 monetary_lower  <- c(4, 3, 1, 1, 1, 2, 1, 2, 4, 1)
 monetary_upper  <- c(5, 5, 3, 1, 1, 3, 2, 5, 5, 2)
 
-# Apply segments based on RFM scores
+# 6. Apply Segmentation Based on RFM Scores
 segment <- rfm_segment(rfm_result, 
                        segment_names,
                        recency_lower, recency_upper,
                        frequency_lower, frequency_upper,
                        monetary_lower, monetary_upper)
 
-# View the segmented customers
+# 7. View the Segmented Customers
 head(segment)
 
-# Step 5: Visualize RFM Segments
-# Recency by segment
+# 8. Visualize RFM Segments
 rfm_plot_median_recency(segment, sort = TRUE)
-
-# Monetary by segment
 rfm_plot_median_monetary(segment, sort = TRUE)
-
-# Frequency by segment
 rfm_plot_median_frequency(segment, sort = TRUE)
+
 ```
+
+---
+# -------------------------------
+# Image 1: RFM Heatmap Visualization
+# -------------------------------
+# Observation:
+# - The heatmap shows a concentration of customers in the lower recency and monetary score areas.
+# - A few cells (likely corresponding to Champions) stand out with high recency and monetary scores.
+#
+# Recommendation for JYSK Romania:
+# - Focus on retaining the small, high-value segment (Champions) with exclusive offers and premium customer service.
+# - Develop targeted re-engagement campaigns for customers in low-score zones to improve their purchase recency and spending.
+# -------------------------------
+
+
+# -------------------------------
+# Image 2: RFM Bar Chart of Scores
+# -------------------------------
+# Observation:
+# - The bar chart shows that the frequency score is highly skewed: almost all customers have a frequency score of 1,
+#   while a very small portion jumps to 5.
+#
+# Recommendation for JYSK Romania:
+# - Since most customers are one-time buyers, create initiatives (e.g., loyalty programs, follow-up promotions) to encourage repeat purchases.
+# - For the rare repeat buyers (frequency = 5), consider upselling and cross-selling strategies to maximize their lifetime value.
+# -------------------------------
+
+
+# -------------------------------
+# Image 3: Median Recency by Segment
+# -------------------------------
+# Observation:
+# - The median recency values across segments reveal that Champions and Loyal Customers have high recency scores (near 5),
+#   while segments like Lost or At Risk show very low recency.
+#
+# Recommendation for JYSK Romania:
+# - Maintain strong engagement with customers in high recency segments (Champions and Loyal Customers) by offering regular incentives.
+# - Launch targeted reactivation campaigns for segments with low recency to try to bring them back into active status.
+# -------------------------------
+
+
+# -------------------------------
+# Image 4: Median Monetary by Segment
+# -------------------------------
+# Observation:
+# - The monetary median is highest for segments such as Champions and “Can't Lose Them,” indicating these groups contribute most revenue.
+# - Lower monetary values are observed in segments like New Customers or Lost.
+#
+# Recommendation for JYSK Romania:
+# - Allocate more resources to premium and cross-selling opportunities for high-spending segments.
+# - Introduce personalized discounts or bundle offers for segments with lower monetary scores to increase their average order value.
+# -------------------------------
+
+
+# -------------------------------
+# Image 5: Median Frequency by Segment
+# -------------------------------
+# Observation:
+# - The median frequency data is extremely polarized, with Champions and Loyal Customers showing significantly higher frequencies,
+#   and almost all other segments having a frequency of 1.
+#
+# Recommendation for JYSK Romania:
+# - Design loyalty programs aimed at converting one-time buyers into repeat customers.
+# - For segments with low frequency, consider implementing reminder emails, special repeat-purchase discounts, or loyalty points.
+# -------------------------------
+
+
+# -------------------------------
+# Image 6: Distribution of Segments (e.g., a table/chart showing customer counts per segment)
+# -------------------------------
+# Observation:
+# - The distribution might reveal that a large portion of customers fall into the New or Lost segments,
+#   with only a small percentage in the high-value segments.
+#
+# Recommendation for JYSK Romania:
+# - Invest in re-engagement strategies for the New and Lost segments—such as targeted promotions or win-back campaigns.
+# - Use segmentation insights to tailor marketing messages for each group, with a focus on moving customers from low-value to high-value segments.
+---
 
 ```{r some data exploration}
 #APPLICATION 2
@@ -1056,11 +1155,22 @@ geo_count_sf <- st_as_sf(geo_count_data, coords = c("Longitude", "Latitude"), cr
 
 # Plot the map with customer counts
 ggplot(geo_count_sf) +
-  geom_sf(aes(color = Count, size = Count), alpha = 0.7) +  # Customize size/color of points
-  scale_color_viridis_c() +  # Color scale for customer counts
+  geom_sf(aes(color = Count, size = Count), alpha = 0.7) +
+  scale_color_gradientn(
+    colors = c("navy", "navy", "red"),
+    limits = range(geo_count_sf$Count)
+  ) +
+  # Increase circle sizes by setting a larger size range
+  scale_size_continuous(range = c(3, 10)) +
   labs(title = "Customer Counts per Judet", fill = "Customer Count") +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  # Remove grid lines from the plot
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
 
 View(unique_judets_df)
 
@@ -1121,7 +1231,7 @@ clv_data <- clv_data %>%
         
 ```
 
-```{r BG/NBD using calibration matrix}        
+```{r BG/NBD using calibration matrix}
              #### BG/NBD
               ## Model estimation ##
               # Estimate parameters for the BG/NBD model using the calibration matrix
@@ -1135,6 +1245,7 @@ clv_data <- clv_data %>%
               ## Plots ##
               # Calibration period fit - aggregated plots
               bgnbd.PlotFrequencyInCalibration(params.bg, cal.cbs, 7)       
+
 ```             
 Plot shows:
 
@@ -1145,7 +1256,10 @@ The model is able to track actual sales well, but is slightly worse at tracking
 This likely typical in a low-frequency sales environment such as furniture - it can be argued that most
 people make only one large purchase and then disappear for a long time
 
-```{r Gamma-Gamma monetary model}              
+
+
+```{r Gamma-Gamma monetary model}
+
               
                    
   
@@ -1177,8 +1291,8 @@ people make only one large purchase and then disappear for a long time
             title = "Actual vs. Expected Average Transaction Value Across Customers"
           )
 ```
-   
-```{r assessing independance for CLV}   
+
+```{r assessing independance for CLV}
         library(ggpubr)
           
               ave.spend #average transaction value in training data
@@ -1256,7 +1370,7 @@ and supports the independence assumption of gamma-gamma
 
 ```
 
-```{r Expected CLV and real CLV - some error metrics}  
+```{r Expected CLV and real CLV - some error metrics}
   # Performance measures: expected CLV vs. real CLV
        rmse_bg <- rmse(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
        mae_bg <- mae(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
@@ -1271,7 +1385,7 @@ and supports the independence assumption of gamma-gamma
       round(models_stats,3)
 ```
 
-```{r histogram for CLV real}    
+```{r histogram for CLV real}
       # Create a histogram of CLV.real
 hist(cal.cbs.gamma.test$CLV.real, 
      main = "Histogram of CLV.real", 
@@ -1321,7 +1435,9 @@ ggplot(cal.cbs.gamma.test, aes(x = CLV.pred.bg, y = CLV.real)) +
 
 ## Association Rules Mining
 
-```{r ## Association Rules mining new}
+-   The association rules will delve into the products inter-relationships and provide insights about the products bought together
+
+```{r Association - cleaning the data}
 # Take dataset
 library(skimr)
 data_asm <- data
@@ -1334,7 +1450,7 @@ skim(data_asm)
 
 ```
 
-```{r}
+```{r Association - preparing the transaction dataframe}
 transacData <- plyr::ddply(data_asm, c("order_id","date"),
                            function(df1)paste(df1$product_title,collapse = ","))
 
@@ -1357,20 +1473,21 @@ summary(tr)
 
 ```
 
-```{r}
+```{r PLot for the top 20 relative and absolute items frequency}
 library(RColorBrewer)
-itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
+itemFrequencyPlot(tr,topN=25,type="absolute",col=brewer.pal(8,'Pastel2'), 
                   main="Absolute Item Frequency Plot")
 
-itemFrequencyPlot(tr,topN=20,type="relative",col=brewer.pal(8,'Pastel2'),
+itemFrequencyPlot(tr,topN=25,type="relative",col=brewer.pal(8,'Pastel2'),
                   main="Relative Item Frequency Plot")
 
 ```
 
-```{r}
-# Look for association rules
+-   most frequent products bought by the customers : DUV 1320g BAGN warm 200x220cm : 1662 Folding table KULESKOG W75xL180 white : 1255 Clothes rail GUDME double black/chrome : 1243\
+    PIL 750g TRONFJELLET 50x70cm: 1188 BTH ENGBLOMME 220x240 rose" 1050
 
-# somewhat strict confidence
+```{r confidence 0.8  and support 0.001}
+
 association.rules <- apriori(tr, 
                              parameter = list(supp=0.001, conf=0.8,maxlen=10))
 
@@ -1378,7 +1495,7 @@ summary(association.rules)
 
 ```
 
-```{r}
+```{r inspecting the rules at 0.8 confidence}
 inspect(association.rules)
 
 sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
@@ -1386,9 +1503,12 @@ sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
 inspect(sortedRules1) 
 ```
 
-```{r}
-# confidence set lower at 0.6
-# this has some implications on the statistical 
+-   At 0.8 confidence 3 rules were found: {MA 60x186x12} =\> {5cm PLUS F15 chair} {5cm PLUS F15 chair} =\> {MA 60x186x12} {Back cushion DUNHAMMER 35x75 beige} =\> {BTH DUNHAMMER 220x240 beige}
+
+The first 3 in particular have a lift of 776 indicating a strong relationship of the items bought together
+
+```{r 0.6 confidence and support 0.0005}
+
 relaxed.rules <- apriori(tr, 
                              parameter = list(supp=0.0005, conf=0.6,maxlen=10))
 summary(relaxed.rules)
@@ -1401,19 +1521,35 @@ inspect(sortedRules2)
 
 ```
 
-```{r}
-# plot association rules - relaxed
+-   Due to the relaxed support and confidence now a list of 17 of items bought together.
+
+```{r plot for rules with confidence above 0.4 }
+
 library(arulesViz)
 subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
 plot(subRules)
 ```
 
-```{r}
+-   The plot provides the situation of the 17 rules found previously and mapping them on the scale of confidence and support, the best ones are the ones situated at the highest confidence and highest support
+
+```{r plot for 17 rules and their respective confidence and support}
 # interactive plot
 
 plot(subRules, method = "two-key plot")
 
 ```
+
+-   The plot provides a representation of the order 2 and 3 rules. THe order 3 ones are clearly low in support and lower in confidence compared the order 2 ones.
+
+```{r plotting on the html widget library}
+
+top10subRules <- head(subRules, n = 10, by = "confidence")
+plot(top10subRules, method = "graph",  engine = "htmlwidget")
+```
+
+-   The plot shows a clear interrelationship between the top 5 order 3 rules. Their confidence is above 0.6, but a high lift around 700 - it provides insights into plate and bowl products
+-   A circular relationship with a high lift and confidence is seen in the products MA 60x186x12 and 5cm PLUS F15 chair.
+-   Additionally a relationship which point to the same bought product {Basket INFINITY 4} happens upon the purchase of {5L plastic white} and {5L plastic grey}. The rules are high in lift around 1000 and with a confidence of 1.
 
 ## Recommender systems
 
@@ -1510,6 +1646,7 @@ avg(results)
 
 
 ```
+
 ```{r}
 # filter RFM to match 
 rfm_sample <- segment %>%
@@ -1536,4 +1673,3 @@ final_output <- recommendation_df %>%
 
 
 ```
-
