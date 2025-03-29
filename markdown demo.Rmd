@@ -797,7 +797,7 @@ sum(is.na(data_clean_rfm$date))         # Count NAs in date
 ```{r #Application 1 - RFM model}
 #RFM model 
 
-analysis_date = as.Date("2024-12-31")
+analysis_date = as.Date("2025-01-01")
 
 # Run the RFM analysis
 rfm_result <- rfm_table_order(data_clean_rfm, 
@@ -811,11 +811,14 @@ rfm_result <- rfm_table_order(data_clean_rfm,
 rfm_plot_heatmap(rfm_result)
 
 # Bar chart of RFM scores
-rfm_bar_chart(rfm_result)
+rfm_plot_bar_chart(rfm_result)
 
-table(rfm_result$rfm$recency_score)
-table(rfm_result$rfm$frequency_score)
-
+order_level_data <- data_clean_rfm %>%
+  dplyr::select(date, order_id, customer_id, revenue) %>%  # select only relevant columns
+  dplyr::group_by(order_id, customer_id, date) %>%         # group by order, customer, and date
+  dplyr::summarise(total_revenue = sum(revenue, na.rm = TRUE)) %>%  # sum revenue for each order
+  dplyr::ungroup()
+#This makes a new aggregated data frame on order level instead of product level
 
 
 
