@@ -42,7 +42,7 @@ library(ggplot2)
 library(tidygeocoder)
 library(sf)
 ```
-
+## Data preprocessing
 ```{r Read the file  - data}
 library(readxl)
 # Load the dataset
@@ -761,7 +761,7 @@ str(data)
 # There is also an anomaly which contradicts what they write in the case description.
 # There are 424.965 rows split into 173.275 orders, meaning ∼2,5 items per order. They say that but there are anomalies where in 1 row they have the revenue exactly 5 times higher than for the same product in other rows. This implies 5 of those products was purchased at that time. This contradicts the 1 row = 1 product bought logic they imply. The first point in this comment is also a contradiction.
 ```
-
+## RFM
 ```{r #APPLICATION1}
 
 #Visualization of the 3 rfm variables
@@ -1154,3 +1154,11 @@ plot(subRules)
 plot(subRules, method = "two-key plot")
 
 ```
+
+## Recommender systems
+```{r}
+
+
+
+```
+
