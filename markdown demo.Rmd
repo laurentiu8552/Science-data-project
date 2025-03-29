@@ -1382,9 +1382,9 @@ ggplot(cal.cbs.gamma.test, aes(x = CLV.pred.bg, y = CLV.real)) +
 ```
 
 ## Association Rules Mining
-## Association Rules Mining
- - The association rules will delve into the products inter-relationships and provide insights about the products bought together
- 
+
+-   The association rules will delve into the products inter-relationships and provide insights about the products bought together
+
 ```{r Association - cleaning the data}
 # Take dataset
 library(skimr)
@@ -1430,14 +1430,10 @@ itemFrequencyPlot(tr,topN=25,type="relative",col=brewer.pal(8,'Pastel2'),
                   main="Relative Item Frequency Plot")
 
 ```
- - most frequent products bought by the customers :
-         DUV 1320g BAGN warm 200x220cm  :         1662 
-         Folding table KULESKOG W75xL180 white :  1255
-         Clothes rail GUDME double black/chrome : 1243        
-         PIL 750g TRONFJELLET 50x70cm:            1188 
-         BTH ENGBLOMME 220x240 rose"              1050                                                                                                           
-                                           
-                                   
+
+-   most frequent products bought by the customers : DUV 1320g BAGN warm 200x220cm : 1662 Folding table KULESKOG W75xL180 white : 1255 Clothes rail GUDME double black/chrome : 1243\
+    PIL 750g TRONFJELLET 50x70cm: 1188 BTH ENGBLOMME 220x240 rose" 1050
+
 ```{r confidence 0.8  and support 0.001}
 
 association.rules <- apriori(tr, 
@@ -1454,12 +1450,11 @@ sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
 
 inspect(sortedRules1) 
 ```
- - At 0.8 confidence 3 rules were found:
- {MA 60x186x12}	=>	{5cm PLUS F15 chair}
- {5cm PLUS F15 chair}	=>	{MA 60x186x12}
- {Back cushion DUNHAMMER 35x75 beige}	=>	{BTH DUNHAMMER 220x240 beige}
- 
- The first 3 in particular have a lift of 776 indicating a strong relationship of the items bought together
+
+-   At 0.8 confidence 3 rules were found: {MA 60x186x12} =\> {5cm PLUS F15 chair} {5cm PLUS F15 chair} =\> {MA 60x186x12} {Back cushion DUNHAMMER 35x75 beige} =\> {BTH DUNHAMMER 220x240 beige}
+
+The first 3 in particular have a lift of 776 indicating a strong relationship of the items bought together
+
 ```{r 0.6 confidence and support 0.0005}
 
 relaxed.rules <- apriori(tr, 
@@ -1473,25 +1468,8 @@ sortedRules2 <- sort(relaxed.rules,by="lift",decreasing=TRUE)
 inspect(sortedRules2) 
 
 ```
- - Due to the relaxed support and confidence now a list of 17 pairs of items bought together:
- 
-1   5cm PLUS F15 chair                   MA 60x186x12
-2   MA 60x186x12                         5cm PLUS F15 chair
-3   5L plastic white                     Basket INFINITY 4
-4   5L plastic grey                      Basket INFINITY 4
-5   Bowl FERDUS Ø15cm stoneware beige    Plate FERDUS Ø27cm stoneware beige
-6   Plate FERDUS Ø27cm stoneware beige   Bowl FERDUS Ø15cm stoneware beige
-7   Bowl FERDUS Ø15cm stoneware beige    Plate FERDUS Ø19cm stoneware beige
-8   Plate FERDUS Ø19cm stoneware beige   Bowl FERDUS Ø15cm stoneware beige
-9   Plate FERDUS Ø27cm stoneware beige   Plate FERDUS Ø19cm stoneware beige
-10  Plate FERDUS Ø19cm stoneware beige   Plate FERDUS Ø27cm stoneware beige
-11  Back cushion ENGBLOMME 60x90 rose    BTH ENGBLOMME 220x240 rose
-12  Back cushion DUNHAMMER 35x75 beige   BTH DUNHAMMER 220x240 beige
-13  Bowl FERDUS Ø15cm stoneware beige,   Plate FERDUS Ø27cm stoneware beige     Plate FERDUS Ø19cm stoneware beige
-14  Bowl FERDUS Ø15cm stoneware beige,   Plate FERDUS Ø19cm stoneware beige     Plate FERDUS Ø27cm stoneware beige
-15  Plate FERDUS Ø19cm stoneware beige,  Plate FERDUS Ø27cm stoneware beige     Bowl FERDUS Ø15cm stoneware beige
-16  TO MALUNG 50x100cm dark grey KR,     TO MALUNG 50x100cm grey KR             TO MALUNG 50x100cm beige KR
-17  TO MALUNG 50x100cm beige KR,         TO MALUNG 50x100cm dark grey KR        TO MALUNG 50x100cm grey KR
+
+-   Due to the relaxed support and confidence now a list of 17 of items bought together.
 
 ```{r plot for rules with confidence above 0.4 }
 
@@ -1499,31 +1477,27 @@ library(arulesViz)
 subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
 plot(subRules)
 ```
- - The plot provides the situation of the 17 rules found previously and mapping them on the scale of confidence and support, the best ones are the ones
-  situated at the highest confidence and highest support
+
+-   The plot provides the situation of the 17 rules found previously and mapping them on the scale of confidence and support, the best ones are the ones situated at the highest confidence and highest support
+
 ```{r plot for 17 rules and their respective confidence and support}
 # interactive plot
 
 plot(subRules, method = "two-key plot")
 
 ```
-- The plot provides a representation of the order 2 and 3 rules. THe order 3 ones are clearly low in support and lower in confidence compared the order 2 ones.
-Below are the 5 ones in the plot:
 
-13  Bowl FERDUS Ø15cm stoneware beige,   Plate FERDUS Ø27cm stoneware beige     Plate FERDUS Ø19cm stoneware beige
-14  Bowl FERDUS Ø15cm stoneware beige,   Plate FERDUS Ø19cm stoneware beige     Plate FERDUS Ø27cm stoneware beige
-15  Plate FERDUS Ø19cm stoneware beige,  Plate FERDUS Ø27cm stoneware beige     Bowl FERDUS Ø15cm stoneware beige
-16  TO MALUNG 50x100cm dark grey KR,     TO MALUNG 50x100cm grey KR             TO MALUNG 50x100cm beige KR
-17  TO MALUNG 50x100cm beige KR,         TO MALUNG 50x100cm dark grey KR        TO MALUNG 50x100cm grey KR
+-   The plot provides a representation of the order 2 and 3 rules. THe order 3 ones are clearly low in support and lower in confidence compared the order 2 ones.
 
 ```{r plotting on the html widget library}
 
 top10subRules <- head(subRules, n = 10, by = "confidence")
 plot(top10subRules, method = "graph",  engine = "htmlwidget")
 ```
-- The plot shows a clear interrelationship between the top 5 order 3 rules. Their confidence is above 0.6, but a high lift around 700 - it provides insights into plate and bowl products
-- A circular relationship with a high lift and confidence is seen in the products MA 60x186x12 and 5cm PLUS F15 chair.
-- Additionally a relationship which point to the same bought product {Basket INFINITY 4} happens upon the purchase of {5L plastic white} and {5L plastic grey}. The rules are high in lift around 1000 and with a confidence of 1.
+
+-   The plot shows a clear interrelationship between the top 5 order 3 rules. Their confidence is above 0.6, but a high lift around 700 - it provides insights into plate and bowl products
+-   A circular relationship with a high lift and confidence is seen in the products MA 60x186x12 and 5cm PLUS F15 chair.
+-   Additionally a relationship which point to the same bought product {Basket INFINITY 4} happens upon the purchase of {5L plastic white} and {5L plastic grey}. The rules are high in lift around 1000 and with a confidence of 1.
 
 ## Recommender systems
 
