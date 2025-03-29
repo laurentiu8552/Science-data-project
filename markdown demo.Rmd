@@ -62,7 +62,7 @@ data <- data %>%
     product_category_level_2 = na_if(product_category_level_2, "")
   )
 
-# 1) Define the 'product_title' vector (202 entries)
+# 1) Define the 'product_title' vector (202 entries) -------
 product_title <- c(
   "Mirror NORDBORG 70×90 silver",
   "MA 160x200cm PLUS F30 DREAMZONE",
@@ -704,7 +704,7 @@ data <- data %>%
   )
 
 # 2) Create data_joined by joining data with lookup on product_title
-data_joined <- data %>%
+data <- data %>%
   left_join(lookup, by = "product_title", suffix = c("", ".lkp")) %>%
   # 3) Replace NAs in original columns with the lookup columns
   mutate(
@@ -715,7 +715,7 @@ data_joined <- data %>%
   dplyr::select(-ends_with(".lkp"))
 
 # 5) Print the complete resulting data frame
-print(data_joined, n = nrow(data_joined))
+print(data, n = nrow(data))
 
 # Convert the 'date' column to Date type
 data$date <- as.Date(data$date, format = "%d.%m.%Y")
@@ -743,11 +743,16 @@ data <- data %>%
 
 # filtering out Result rows
 data <- data %>%
-  filter(customer_id != "Result")
+  filter(order_id != "Result")
+
+data$customer_zip_code <- as.character(data$customer_zip_code)
+data$customer_zip_code[is.na(data$customer_zip_code)] <- "9999999999"
+data$customer_zip_code <- as.factor(data$customer_zip_code)
 
 january_first_sum_after_cleaning <- sum(data$revenue[data$date == "2024-01-01"])
 
 sum(is.na(data))
+skimr::skim(data)
 
 str(data)
 
@@ -758,13 +763,6 @@ str(data)
 ```
 
 ```{r #APPLICATION1}
-
-#Cleaning of data
-
-#Cleaning the data on na customers but also revenue above 0
-data_clean_rfm <- data %>% 
-  filter(!is.na(customer_id) & revenue > 0)
-
 
 #Visualization of the 3 rfm variables
 
