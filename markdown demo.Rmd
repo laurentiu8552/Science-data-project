@@ -1156,11 +1156,22 @@ geo_count_sf <- st_as_sf(geo_count_data, coords = c("Longitude", "Latitude"), cr
 
 # Plot the map with customer counts
 ggplot(geo_count_sf) +
-  geom_sf(aes(color = Count, size = Count), alpha = 0.7) +  # Customize size/color of points
-  scale_color_viridis_c() +  # Color scale for customer counts
+  geom_sf(aes(color = Count, size = Count), alpha = 0.7) +
+  scale_color_gradientn(
+    colors = c("navy", "navy", "red"),
+    limits = range(geo_count_sf$Count)
+  ) +
+  # Increase circle sizes by setting a larger size range
+  scale_size_continuous(range = c(3, 10)) +
   labs(title = "Customer Counts per Judet", fill = "Customer Count") +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  # Remove grid lines from the plot
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
 
 View(unique_judets_df)
 
