@@ -950,29 +950,6 @@ rfm_plot_median_frequency(segment, sort = TRUE)
 # - Invest in re-engagement strategies for the New and Lost segments—such as targeted promotions or win-back campaigns.
 # - Use segmentation insights to tailor marketing messages for each group, with a focus on moving customers from low-value to high-value segments.
 # -------------------------------
-
-
-# -------------------------------
-# Image 7: [Additional Visualization: e.g., Trend Over Time or Segment Evolution]
-# -------------------------------
-# Observation:
-# - If this image shows trends, you might see whether the high-value segments are growing or shrinking over time.
-#
-# Recommendation for JYSK Romania:
-# - Monitor these trends closely to adjust marketing efforts dynamically.
-# - If high-value segments are shrinking, consider boosting retention activities and personalized offers.
-# -------------------------------
-
-
-# -------------------------------
-# Image 8: [Additional Visualization: e.g., Comparative Analysis Across Regions/Channels]
-# -------------------------------
-# Observation:
-# - The visualization might compare RFM performance across different channels or regions.
-#
-# Recommendation for JYSK Romania:
-# - Identify which channels yield the highest RFM scores and allocate more resources there.
-# - Tailor regional strategies based on which segments are over- or under-represented.
 ---
 
 ```{r some data exploration}
