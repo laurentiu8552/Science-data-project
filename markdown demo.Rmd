@@ -46,35 +46,73 @@ library(sf)
 
 ## Data pre-processing
 
-Our data handling process had the main focus of preserving and keeping as much data as possible. For a company like JYSK, we believe this is a reasonable approach. More data likely means better models and better understanding. Such a big company has this immense amount of data available, so we should utilize it. Our process includes:
+Our data handling process had the main focus of preserving and keeping
+as much data as possible. For a company like JYSK, we believe this is a
+reasonable approach. More data likely means better models and better
+understanding. Such a big company has this immense amount of data
+available, so we should utilize it. Our process includes:
 
--   Deleting duplicates based on reasoning and reconciliation seen in the comments
+-   Deleting duplicates based on reasoning and reconciliation seen in
+    the comments
 
--   Filtering to only include revenue \> 0 to exclude irrelevant (or hardly identifiable) rows that are likely returned products or discounts
+-   Filtering to only include revenue \> 0 to exclude irrelevant (or
+    hardly identifiable) rows that are likely returned products or
+    discounts
 
--   Filtering to exclude Result rows that summarize revenue for that given day
+-   Filtering to exclude Result rows that summarize revenue for that
+    given day
 
--   Imputing empty ZIP code cells because we do not want NA's but also do not want missing data regarding the products and revenue
+-   Imputing empty ZIP code cells because we do not want NA's but also
+    do not want missing data regarding the products and revenue
 
--   Imputing empty product categories and groups in cases where the actual product name was available, again to preserve as much info as possible
+-   Imputing empty product categories and groups in cases where the
+    actual product name was available, again to preserve as much info as
+    possible
 
--   Imputing empty customer ID's with a placeholder instead of deleting, not to lose information on the products
+-   Imputing empty customer ID's with a placeholder instead of deleting,
+    not to lose information on the products
 
 -   Other smaller adjustments to have a more easily usable data set
 
--   Further adjustments to the data set are done in the separate use cases / models / sections
+-   Further adjustments to the data set are done in the separate use
+    cases / models / sections
 
-Discussion on rows possibly containing more items: As opposed to the description which assumes 1 item per order, we ran into the problem of quantities. Let's take 2 examples:
+Discussion on rows possibly containing more items: As opposed to the
+description which assumes 1 item per order, we ran into the problem of
+quantities. Let's take 2 examples:
 
--   Product ID: 6112239 in many lines generates 63.03 (sometimes 56.73 on other days due to price changes during the year, which is an issue in itself, but one that we decided not to follow up on this time because the period is only 1 year and the changes %-wise aren't big). Then in another line the revenue is 189,07 which is exactly 3 times higher. This directly implies that we are not talking about 1 item per 1 row.
+-   Product ID: 6112239 in many lines generates 63.03 (sometimes 56.73
+    on other days due to price changes during the year, which is an
+    issue in itself, but one that we decided not to follow up on this
+    time because the period is only 1 year and the changes %-wise aren't
+    big). Then in another line the revenue is 189,07 which is exactly 3
+    times higher. This directly implies that we are not talking about 1
+    item per 1 row.
 
--   Same thing happens with product 6112118. The most frequent revenue (presumably price per unit) is 34,66. There is a row with revenue generated 1559,85 which is exactly 45 times higher.
+-   Same thing happens with product 6112118. The most frequent revenue
+    (presumably price per unit) is 34,66. There is a row with revenue
+    generated 1559,85 which is exactly 45 times higher.
 
-These anomalies make it rather hard to generalize the data to a format where we can make sure that 1 row contains only 1 item from a certain order. One possible solution would be to take the most frequent revenue value in a product, and based on division of revenue, create a quantity column. Afterwards, x many new identical rows with the given product (and price per unit as revenue) could be generated where x is equal to quantity of the initial row. Then the row with quantity of let's say 5 would be deleted, after having distributed the revenue into 5 new rows. **With this method we could make sure that each row contains only 1 item from 1 product in a certain order.**
+These anomalies make it rather hard to generalize the data to a format
+where we can make sure that 1 row contains only 1 item from a certain
+order. One possible solution would be to take the most frequent revenue
+value in a product, and based on division of revenue, create a quantity
+column. Afterwards, x many new identical rows with the given product
+(and price per unit as revenue) could be generated where x is equal to
+quantity of the initial row. Then the row with quantity of let's say 5
+would be deleted, after having distributed the revenue into 5 new rows.
+**With this method we could make sure that each row contains only 1 item
+from 1 product in a certain order.**
 
-In this project, for our models we decided not to go with this method as it was not crucial from the recommendations standpoint, but for data clarity and further analysis, it surely would make a difference.
+In this project, for our models we decided not to go with this method as
+it was not crucial from the recommendations standpoint, but for data
+clarity and further analysis, it surely would make a difference.
 
-Another observation we had is that on specific days like November 23rd and February 1st, each and every row has it's customer id and zip codes missing. This could raise the suspicion of data collection errors from the company's side on specific days, which we thought should be noted and possibly looked into.
+Another observation we had is that on specific days like November 23rd
+and February 1st, each and every row has it's customer id and zip codes
+missing. This could raise the suspicion of data collection errors from
+the company's side on specific days, which we thought should be noted
+and possibly looked into.
 
 ```{r Read the file  - data}
 # Loading dataset 
@@ -874,81 +912,28 @@ rfm_plot_median_frequency(segment, sort = TRUE)
 ```
 
 ---
-# -------------------------------
 # Image 1: RFM Heatmap Visualization
-# -------------------------------
 # Observation:
-# - The heatmap shows a concentration of customers in the lower recency and monetary score areas.
-# - A few cells (likely corresponding to Champions) stand out with high recency and monetary scores.
-#
 # Recommendation for JYSK Romania:
-# - Focus on retaining the small, high-value segment (Champions) with exclusive offers and premium customer service.
-# - Develop targeted re-engagement campaigns for customers in low-score zones to improve their purchase recency and spending.
-# -------------------------------
-
-
-# -------------------------------
 # Image 2: RFM Bar Chart of Scores
-# -------------------------------
 # Observation:
 # - The bar chart shows that the frequency score is highly skewed: almost all customers have a frequency score of 1,
-#   while a very small portion jumps to 5.
-#
 # Recommendation for JYSK Romania:
-# - Since most customers are one-time buyers, create initiatives (e.g., loyalty programs, follow-up promotions) to encourage repeat purchases.
-# - For the rare repeat buyers (frequency = 5), consider upselling and cross-selling strategies to maximize their lifetime value.
-# -------------------------------
-
-
-# -------------------------------
 # Image 3: Median Recency by Segment
-# -------------------------------
 # Observation:
-# - The median recency values across segments reveal that Champions and Loyal Customers have high recency scores (near 5),
-#   while segments like Lost or At Risk show very low recency.
-#
 # Recommendation for JYSK Romania:
-# - Maintain strong engagement with customers in high recency segments (Champions and Loyal Customers) by offering regular incentives.
-# - Launch targeted reactivation campaigns for segments with low recency to try to bring them back into active status.
-# -------------------------------
-
-
-# -------------------------------
 # Image 4: Median Monetary by Segment
-# -------------------------------
 # Observation:
-# - The monetary median is highest for segments such as Champions and “Can't Lose Them,” indicating these groups contribute most revenue.
-# - Lower monetary values are observed in segments like New Customers or Lost.
-#
 # Recommendation for JYSK Romania:
-# - Allocate more resources to premium and cross-selling opportunities for high-spending segments.
-# - Introduce personalized discounts or bundle offers for segments with lower monetary scores to increase their average order value.
-# -------------------------------
-
-
-# -------------------------------
 # Image 5: Median Frequency by Segment
-# -------------------------------
 # Observation:
-# - The median frequency data is extremely polarized, with Champions and Loyal Customers showing significantly higher frequencies,
-#   and almost all other segments having a frequency of 1.
-#
 # Recommendation for JYSK Romania:
-# - Design loyalty programs aimed at converting one-time buyers into repeat customers.
-# - For segments with low frequency, consider implementing reminder emails, special repeat-purchase discounts, or loyalty points.
-# -------------------------------
-
-
-# -------------------------------
 # Image 6: Distribution of Segments (e.g., a table/chart showing customer counts per segment)
-# -------------------------------
 # Observation:
-# - The distribution might reveal that a large portion of customers fall into the New or Lost segments,
-#   with only a small percentage in the high-value segments.
-#
 # Recommendation for JYSK Romania:
-# - Invest in re-engagement strategies for the New and Lost segments—such as targeted promotions or win-back campaigns.
-# - Use segmentation insights to tailor marketing messages for each group, with a focus on moving customers from low-value to high-value segments.
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r some data exploration}
@@ -1246,17 +1231,17 @@ clv_data <- clv_data %>%
               # Calibration period fit - aggregated plots
               bgnbd.PlotFrequencyInCalibration(params.bg, cal.cbs, 7)       
 
-```             
+```
+
 Plot shows:
 
-0 repeat purchases - most customers only purchased once
-The model is able to track actual sales well, but is slightly worse at tracking
-1 and 2 repeat purchases
+0 repeat purchases - most customers only purchased once The model is
+able to track actual sales well, but is slightly worse at tracking 1 and
+2 repeat purchases
 
-This likely typical in a low-frequency sales environment such as furniture - it can be argued that most
-people make only one large purchase and then disappear for a long time
-
-
+This likely typical in a low-frequency sales environment such as
+furniture - it can be argued that most people make only one large
+purchase and then disappear for a long time
 
 ```{r Gamma-Gamma monetary model}
 
@@ -1312,19 +1297,18 @@ people make only one large purchase and then disappear for a long time
               
 ```
 
-Plot comments:
-Customers with only 1 repeat purchase tend to have wider spread in purchase value,
-many high outliers 
+Plot comments: Customers with only 1 repeat purchase tend to have wider
+spread in purchase value, many high outliers
 
-As number of repeat purchases increase, the variance in avg. purchase value 
-decreases which could be argued to be expected - we see no movement in the
-median values of the repeat purchases. As no. repeat purchases increase, variance
-decreases which could suggest a more stable average. 
+As number of repeat purchases increase, the variance in avg. purchase
+value decreases which could be argued to be expected - we see no
+movement in the median values of the repeat purchases. As no. repeat
+purchases increase, variance decreases which could suggest a more stable
+average.
 
-
-Correlation comments:
-Correlation is very close to 0, which should indicate no meaningful correlation
-and supports the independence assumption of gamma-gamma
+Correlation comments: Correlation is very close to 0, which should
+indicate no meaningful correlation and supports the independence
+assumption of gamma-gamma
 
 ```{r setting up the data for next year prediction}
     # BG/NBD 
@@ -1432,25 +1416,27 @@ ggplot(cal.cbs.gamma.test, aes(x = CLV.pred.bg, y = CLV.real)) +
 
 
 ```
-Scatterplot
-compares each customer's predicted clv using BG/NBD and gamma-gamma model with 
-their actual clv observed during the 1 year holdout period
 
-positive trend - indicates model is able to capture the overall relationship
-between predicted and actual value - customers with higher pred.clv tend to spend
-more - this is what we should expect as customers with a high real clv are spending more
-at the retailer such as jysk
+Scatterplot compares each customer's predicted clv using BG/NBD and
+gamma-gamma model with their actual clv observed during the 1 year
+holdout period
 
-dispersion - for customers with lower pred.clv. Some of these are high value because
-their real clv is high (nearing top left corner of the plot) 
-This could mean that the model underestimates a small group of high-spending customers
-or these customers may have unpredictable spending patterns
+positive trend - indicates model is able to capture the overall
+relationship between predicted and actual value - customers with higher
+pred.clv tend to spend more - this is what we should expect as customers
+with a high real clv are spending more at the retailer such as jysk
 
-
+dispersion - for customers with lower pred.clv. Some of these are high
+value because their real clv is high (nearing top left corner of the
+plot) This could mean that the model underestimates a small group of
+high-spending customers or these customers may have unpredictable
+spending patterns
 
 ## Association Rules Mining
 
--   The association rules will delve into the products inter-relationships and provide insights about the products bought together
+-   The association rules will delve into the products
+    inter-relationships and provide insights about the products bought
+    together
 
 ```{r Association - cleaning the data}
 # Take dataset
@@ -1498,7 +1484,9 @@ itemFrequencyPlot(tr,topN=25,type="relative",col=brewer.pal(8,'Pastel2'),
 
 ```
 
--   most frequent products bought by the customers : DUV 1320g BAGN warm 200x220cm : 1662 Folding table KULESKOG W75xL180 white : 1255 Clothes rail GUDME double black/chrome : 1243\
+-   most frequent products bought by the customers : DUV 1320g BAGN warm
+    200x220cm : 1662 Folding table KULESKOG W75xL180 white : 1255
+    Clothes rail GUDME double black/chrome : 1243\
     PIL 750g TRONFJELLET 50x70cm: 1188 BTH ENGBLOMME 220x240 rose" 1050
 
 ```{r confidence 0.8  and support 0.001}
@@ -1518,9 +1506,12 @@ sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
 inspect(sortedRules1) 
 ```
 
--   At 0.8 confidence 3 rules were found: {MA 60x186x12} =\> {5cm PLUS F15 chair} {5cm PLUS F15 chair} =\> {MA 60x186x12} {Back cushion DUNHAMMER 35x75 beige} =\> {BTH DUNHAMMER 220x240 beige}
+-   At 0.8 confidence 3 rules were found: {MA 60x186x12} =\> {5cm PLUS
+    F15 chair} {5cm PLUS F15 chair} =\> {MA 60x186x12} {Back cushion
+    DUNHAMMER 35x75 beige} =\> {BTH DUNHAMMER 220x240 beige}
 
-The first 3 in particular have a lift of 776 indicating a strong relationship of the items bought together
+The first 3 in particular have a lift of 776 indicating a strong
+relationship of the items bought together
 
 ```{r 0.6 confidence and support 0.0005}
 
@@ -1536,7 +1527,8 @@ inspect(sortedRules2)
 
 ```
 
--   Due to the relaxed support and confidence now a list of 17 of items bought together.
+-   Due to the relaxed support and confidence now a list of 17 of items
+    bought together.
 
 ```{r plot for rules with confidence above 0.4 }
 
@@ -1545,7 +1537,9 @@ subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
 plot(subRules)
 ```
 
--   The plot provides the situation of the 17 rules found previously and mapping them on the scale of confidence and support, the best ones are the ones situated at the highest confidence and highest support
+-   The plot provides the situation of the 17 rules found previously and
+    mapping them on the scale of confidence and support, the best ones
+    are the ones situated at the highest confidence and highest support
 
 ```{r plot for 17 rules and their respective confidence and support}
 # interactive plot
@@ -1554,7 +1548,9 @@ plot(subRules, method = "two-key plot")
 
 ```
 
--   The plot provides a representation of the order 2 and 3 rules. THe order 3 ones are clearly low in support and lower in confidence compared the order 2 ones.
+-   The plot provides a representation of the order 2 and 3 rules. THe
+    order 3 ones are clearly low in support and lower in confidence
+    compared the order 2 ones.
 
 ```{r plotting on the html widget library}
 
@@ -1562,11 +1558,19 @@ top10subRules <- head(subRules, n = 10, by = "confidence")
 plot(top10subRules, method = "graph",  engine = "htmlwidget")
 ```
 
--   The plot shows a clear interrelationship between the top 5 order 3 rules. Their confidence is above 0.6, but a high lift around 700 - it provides insights into plate and bowl products
--   A circular relationship with a high lift and confidence is seen in the products MA 60x186x12 and 5cm PLUS F15 chair.
--   Additionally a relationship which point to the same bought product {Basket INFINITY 4} happens upon the purchase of {5L plastic white} and {5L plastic grey}. The rules are high in lift around 1000 and with a confidence of 1.
+-   The plot shows a clear interrelationship between the top 5 order 3
+    rules. Their confidence is above 0.6, but a high lift around 700 -
+    it provides insights into plate and bowl products
+-   A circular relationship with a high lift and confidence is seen in
+    the products MA 60x186x12 and 5cm PLUS F15 chair.
+-   Additionally a relationship which point to the same bought product
+    {Basket INFINITY 4} happens upon the purchase of {5L plastic white}
+    and {5L plastic grey}. The rules are high in lift around 1000 and
+    with a confidence of 1.
 
 ## Recommender systems
+
+test text
 
 ```{r}
 data_rcs <- data
