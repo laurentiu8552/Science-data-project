@@ -1062,13 +1062,15 @@ clv_data <- clv_data %>%
 
 clv_data <- as.data.frame(clv_data)
 
+# Remove customer with ID 9999999999
+clv_data <- clv_data %>%
+  filter(customer_id != 9999999999)
 
-
-```
-
-```{r Running the CLV models}
-#### 1 model
-library(BTYD)
+#################################
+#TESTING ON A SMALLER DATASET DELETE LATER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# clv_data <- clv_data %>%
+#   sample_frac(0.1)  # Select 10%
+#################################
 
  # Select subset
     clv_subset <- mutate(clv_data[,c(1,2,3)], date =as.Date(date)) 
@@ -1079,43 +1081,32 @@ library(BTYD)
     
     #### BTYD prepping data final
     
-
-    
-  #### Create calibration matrix using BTYD package
-          end.of.cal.period <- as.Date("2024-09-01") # Set the end date for the calibration period
-          # Transform the transaction log data to frequency and recency matrices for the calibration period
+          end.of.cal.period <- as.Date("2024-09-01")
           data_btyd_recency <- dc.ElogToCbsCbt(data_btyd, per="week", T.cal = end.of.cal.period,  statistic = "freq") 
-          # Extract the calibration matrix for use in model estimation
           cal.cbs <- as.matrix(data_btyd_recency[[1]][[1]])
           variable.names(cal.cbs)
-          # "x" (Frequency: the number of repeat transactions a customer has made 
-          #      in the calibration period, not including their first purchase)    
-          # "t.x" (Recency: how recently a customer was actively purchasing, prior 
-          #      to the end of the calibration period)
-          # "T.cal": The customer's age in the calibration period, that is, 
-          #      how long the customer has been active during the period analyzed)
-
+        
+```
+ 
           
-          
-          
-                   
-  #### --- Model prediction ---
-          
+```{r CLV models running}        
+   
+    #### --- Model prediction ---
+          #____________
           #### Pareto/NBD
               ## Model estimation 
-              ## Estimate the parameters of the Pareto/NBD model using the calibration matrix
-              params.pareto <- BTYD::pnbd.EstimateParameters(cal.cbs = cal.cbs)
-              params.pareto
-              
-              # Calculate and print the log likelihood of the fitted Pareto/NBD model
-              LL.pareto <- pnbd.cbs.LL(params.pareto, data_btyd_recency$cal$cbs)
-              LL.pareto
-              
-              ## Plots ##
-                # Plot the fit of the model during calibration period - aggregated data
-                pnbd.PlotFrequencyInCalibration(params.pareto, data_btyd_recency$cal$cbs, censor = 7)
-                
-    summary(cal.cbs)         
+              # ## Estimate the parameters of the Pareto/NBD model using the calibration matrix
+              # params.pareto <- BTYD::pnbd.EstimateParameters(cal.cbs = cal.cbs)
+              # params.pareto
+              # 
+              # # Calculate and print the log likelihood of the fitted Pareto/NBD model
+              # LL.pareto <- pnbd.cbs.LL(params.pareto, data_btyd_recency$cal$cbs)
+              # LL.pareto
+              # 
+              # ## Plots ##
+              #   # Plot the fit of the model during calibration period - aggregated data
+              #   pnbd.PlotFrequencyInCalibration(params.pareto, data_btyd_recency$cal$cbs, censor = 7)
+           #_________________     
                 
        
     
@@ -1198,23 +1189,25 @@ library(BTYD)
     # parameters derived from it, it estimates the number of transactions a 
     # customer will make in the next T.star period.   
      
-       library(BTYD)
-      T.star <- max(data_btyd_recency$holdout$cbs[,"T.star"])
-      
-      cal.cbs1$yearpred.pareto <- round(pnbd.ConditionalExpectedTransactions(
-      params.pareto,
-      T.star = T.star, # Duration of the prediction period (holdout sample)
-      x = cal.cbs1$x, # Number of repeat transactions
-      t.x = cal.cbs1$t.x, # Time of last transaction
-      T.cal = cal.cbs1$T.cal, # Length of the calibration period
-      hardie = TRUE),2)
+              #___________________
+      #  library(BTYD)
+      # T.star <- max(data_btyd_recency$holdout$cbs[,"T.star"])
+      # 
+      # cal.cbs1$yearpred.pareto <- round(pnbd.ConditionalExpectedTransactions(
+      # params.pareto,
+      # T.star = T.star, # Duration of the prediction period (holdout sample)
+      # x = cal.cbs1$x, # Number of repeat transactions
+      # t.x = cal.cbs1$t.x, # Time of last transaction
+      # T.cal = cal.cbs1$T.cal, # Length of the calibration period
+      # hardie = TRUE),2)
  
-      
+      #_________________
       
       
     
     # using BG/NBD -- same idea
-    cal.cbs1$yearpred.bg <- round(bgnbd.ConditionalExpectedTransactions(
+    T.star <- max(data_btyd_recency$holdout$cbs[,"T.star"])
+      cal.cbs1$yearpred.bg <- round(bgnbd.ConditionalExpectedTransactions(
       params.bg,
       T.star = T.star,
       x = cal.cbs1$x,
@@ -1259,7 +1252,11 @@ library(BTYD)
          
      # Calculate expected CLV (1-year predictions, validation period)
      # by multiplying expected transactions by the expected monetary value
-      cal.cbs.gamma.test$CLV.pred.pareto <- cal.cbs.gamma.test$spend * cal.cbs.gamma.test$yearpred.pareto # Pareto/NBD
+      
+      #_____
+      # cal.cbs.gamma.test$CLV.pred.pareto <- cal.cbs.gamma.test$spend * cal.cbs.gamma.test$yearpred.pareto # Pareto/NBD
+      #_____
+      
       cal.cbs.gamma.test$CLV.pred.bg <- cal.cbs.gamma.test$spend * cal.cbs.gamma.test$yearpred.bg # BG/NBD
       
           
@@ -1269,8 +1266,7 @@ library(BTYD)
 
   
       head(cal.cbs.gamma.test[, c(13:14)]) #to be added later
-    
-           # CLV.pred.pareto CLV.pred.bg CLV.real
+               # CLV.pred.pareto CLV.pred.bg CLV.real
            # 1      0.000000    0.000000      0.0
            # 2      2.907413    8.722238      0.0
            # 3     883.167227  692.946593    481.3
@@ -1283,21 +1279,23 @@ library(BTYD)
       
      
       # Individual level
-      # Pareto/NBD
-      rmse_pareto <- rmse(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.pareto)
-      mae_pareto <- mae(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.pareto)
       
-      #BG/NBD
-      rmse_bg <- rmse(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
-      mae_bg <- mae(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
+      #_____________
+      # Pareto/NBD
+      # rmse_pareto <- rmse(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.pareto)
+      # mae_pareto <- mae(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.pareto)
+      # _____________
+       #BG/NBD
+       rmse_bg <- rmse(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
+       mae_bg <- mae(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
       
       
       #### Summary of evaluation (MSE and RMSE)
-      models_rmse = cbind(rmse_pareto, rmse_bg)
-      models_mae = cbind(mae_pareto, mae_bg)
+      models_rmse = cbind(rmse_bg)
+      models_mae = cbind(mae_bg)
       models_stats = rbind(models_rmse, models_mae)
       rownames(models_stats) = c("RMSE", "MAE")
-      colnames(models_stats) = c("Pareto/NBD", "BG/NBD")
+      colnames(models_stats) = c("BG/NBD")
       round(models_stats,3)
       
       #         Pareto/NBD   BG/NBD
@@ -1307,27 +1305,22 @@ library(BTYD)
     
   
   # Create a histogram of CLV.real
-      hist(cal.cbs.gamma.test$CLV.real, 
-           main = "Histogram of CLV.real vs CLV.pred.pareto", 
-           xlab = "CLV Value", 
-           col = rgb(0, 0, 1, 0.5),  # Blue with transparency for real values
-           border = "black", 
-           breaks = 50, 
-           xlim = c(0, 7000),  # Set the x-axis range to focus on 0-7000
-           ylim = c(0, 100))  # Adjust y-axis range for better visualization
-      
-      # Overlay the histogram for CLV.pred.pareto
-      hist(cal.cbs.gamma.test$CLV.pred.pareto, 
-           col = rgb(1, 0, 0, 0.5),  # Red with transparency for predicted values
-           border = "black", 
-           breaks = 50, 
-           add = TRUE)  # Add to the existing plot
-      
-      # Add a legend
-      legend("topright", 
-             legend = c("CLV.real", "CLV.pred.pareto"), 
-             fill = c(rgb(0, 0, 1, 0.5), rgb(1, 0, 0, 0.5)))
-    
+
+      # Create a histogram of CLV.real
+hist(cal.cbs.gamma.test$CLV.real, 
+     main = "Histogram of CLV.real", 
+     xlab = "CLV Value", 
+     col = rgb(0, 0, 1, 0.5),  # Blue with transparency for real values
+     border = "black", 
+     breaks = 50, 
+     xlim = c(0, 7000),  # Set the x-axis range to focus on 0-7000
+     ylim = c(0, 100))  # Adjust y-axis range for better visualization
+
+# Add a legend
+legend("topright", 
+       legend = c("CLV.real"), 
+       fill = c(rgb(0, 0, 1, 0.5)))
+
       
       #data3 - clv_subset
       #data1 - data_btyd
