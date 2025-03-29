@@ -754,6 +754,8 @@ skimr::skim(data)
 
 #Visualization of the 3 rfm variables
 
+data_clean_rfm = data
+
 # Revenue histogram
 hist(data_clean_rfm$revenue, main = "Histogram of Revenue", col = "blue", border = "black")
 # Check for NAs
@@ -1085,9 +1087,9 @@ clv_data <- as.data.frame(clv_data)
 library(BTYD)
 
  # Select subset
-    clv_subset <- mutate(clv_data[,c(1,2,3)], date =as.Date(date)) # gets only needed columns 
-    names(clv_subset) <- c("cust", "sales", "date") # model functions expect these names
-    length(unique(clv_subset$cust)) # 669 unique customers left
+    clv_subset <- mutate(clv_data[,c(1,2,3)], date =as.Date(date)) 
+    names(clv_subset) <- c("cust", "sales", "date") 
+    length(unique(clv_subset$cust)) 
     data_btyd <- dc.MergeTransactionsOnSameDate(clv_subset)
 
     
@@ -1129,7 +1131,7 @@ library(BTYD)
                 # Plot the fit of the model during calibration period - aggregated data
                 pnbd.PlotFrequencyInCalibration(params.pareto, data_btyd_recency$cal$cbs, censor = 7)
                 
-             
+    summary(cal.cbs)         
                 
        
     
@@ -1447,6 +1449,8 @@ plot(subRules, method = "two-key plot")
 ## Recommender systems
 
 ```{r}
+data_rcs <- data
+
 
 
 
