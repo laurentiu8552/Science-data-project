@@ -795,66 +795,82 @@ sum(is.na(data_clean_rfm$date))         # Count NAs in date
 ```
 
 ```{r #Application 1 - RFM model}
-#RFM model 
+# 1. Aggregate to Order-Level Data
+order_level_data <- data_clean_rfm %>%
+  dplyr::select(date, order_id, customer_id, revenue) %>%  # keep only relevant columns
+  dplyr::group_by(order_id, customer_id, date) %>%         # group by order_id, customer_id, and date
+  dplyr::summarise(total_revenue = sum(revenue, na.rm = TRUE), .groups = "drop")  # sum revenue and ungroup
 
-analysis_date = as.Date("2025-01-01")
+# 2. Set Analysis Date (using the day after your last order date)
+analysis_date <- as.Date("2025-01-01")  
 
-# Run the RFM analysis
-rfm_result <- rfm_table_order(data_clean_rfm, 
+# 3. Run the RFM Analysis using the Aggregated Data
+# Note: We now use 'total_revenue' instead of 'revenue'
+rfm_result <- rfm_table_order(order_level_data, 
                               customer_id, 
                               date, 
-                              revenue, 
+                              total_revenue, 
                               analysis_date = analysis_date)
 
-# Step 3: Visualize RFM Results
-# Heatmap visualization of RFM scores
+# 4. Visualize RFM Results
 rfm_plot_heatmap(rfm_result)
-
-# Bar chart of RFM scores
 rfm_plot_bar_chart(rfm_result)
 
-order_level_data <- data_clean_rfm %>%
-  dplyr::select(date, order_id, customer_id, revenue) %>%  # select only relevant columns
-  dplyr::group_by(order_id, customer_id, date) %>%         # group by order, customer, and date
-  dplyr::summarise(total_revenue = sum(revenue, na.rm = TRUE)) %>%  # sum revenue for each order
-  dplyr::ungroup()
-#This makes a new aggregated data frame on order level instead of product level
-
-
-
-# Step 4: Segment Customers based on RFM scores
-# Define RFM segment categories
+# 5. Define RFM Segment Categories and Thresholds
 segment_names <- c("Champions", "Loyal Customers", "Potential Loyalist", 
                    "New Customers", "Promising", "Need Attention", "About To Sleep", 
                    "At Risk", "Can't Lose Them", "Lost")
 
-# Set upper and lower bounds for Recency, Frequency, and Monetary
+# For Recency
+summary(rfm_result$rfm$recency_score)
+hist(rfm_result$rfm$recency_score, main = "Recency Distribution", xlab = "Recency")
+
+# For Frequency
+summary(rfm_result$rfm$frequency_score)
+hist(rfm_result$rfm$frequency_score, main = "Frequency Distribution", xlab = "Frequency")
+
+# For Monetary
+summary(rfm_result$rfm$monetary_score)
+hist(rfm_result$rfm$monetary_score, main = "Monetary Distribution", xlab = "Monetary")
+
+quantile(rfm_result$rfm$recency_score, probs = seq(0, 1, 0.2))
+quantile(rfm_result$rfm$frequency_score, probs = seq(0, 1, 0.2))
+quantile(rfm_result$rfm$monetary_score, probs = seq(0, 1, 0.2))
+
+# For each customer, count the number of orders (each row in order_level_data is an order)
+customer_orders <- order_level_data %>%
+  dplyr::group_by(customer_id) %>%
+  dplyr::summarise(num_orders = dplyr::n(), .groups = "drop")
+
+# Count how many customers fall into each order count bucket
+freq_dist <- customer_orders %>%
+  dplyr::count(num_orders)
+
+print(freq_dist)
+
+
 recency_lower   <- c(4, 2, 3, 4, 3, 2, 2, 1, 1, 1)
 recency_upper   <- c(5, 5, 5, 5, 4, 3, 3, 2, 1, 2)
-frequency_lower <- c(4, 3, 1, 1, 1, 2, 1, 2, 4, 1)
-frequency_upper <- c(5, 5, 3, 1, 1, 3, 2, 5, 5, 2)
+frequency_lower <- c(5, 5, 3, 1, 1, 1, 1, 1, 1, 1)
+frequency_upper <- c(5, 5, 5, 1, 1, 1, 1, 1, 1, 1)
 monetary_lower  <- c(4, 3, 1, 1, 1, 2, 1, 2, 4, 1)
 monetary_upper  <- c(5, 5, 3, 1, 1, 3, 2, 5, 5, 2)
 
-# Apply segments based on RFM scores
+# 6. Apply Segmentation Based on RFM Scores
 segment <- rfm_segment(rfm_result, 
                        segment_names,
                        recency_lower, recency_upper,
                        frequency_lower, frequency_upper,
                        monetary_lower, monetary_upper)
 
-# View the segmented customers
+# 7. View the Segmented Customers
 head(segment)
 
-# Step 5: Visualize RFM Segments
-# Recency by segment
+# 8. Visualize RFM Segments
 rfm_plot_median_recency(segment, sort = TRUE)
-
-# Monetary by segment
 rfm_plot_median_monetary(segment, sort = TRUE)
-
-# Frequency by segment
 rfm_plot_median_frequency(segment, sort = TRUE)
+
 ```
 
 ```{r some data exploration}
