@@ -873,6 +873,108 @@ rfm_plot_median_frequency(segment, sort = TRUE)
 
 ```
 
+---
+# -------------------------------
+# Image 1: RFM Heatmap Visualization
+# -------------------------------
+# Observation:
+# - The heatmap shows a concentration of customers in the lower recency and monetary score areas.
+# - A few cells (likely corresponding to Champions) stand out with high recency and monetary scores.
+#
+# Recommendation for JYSK Romania:
+# - Focus on retaining the small, high-value segment (Champions) with exclusive offers and premium customer service.
+# - Develop targeted re-engagement campaigns for customers in low-score zones to improve their purchase recency and spending.
+# -------------------------------
+
+
+# -------------------------------
+# Image 2: RFM Bar Chart of Scores
+# -------------------------------
+# Observation:
+# - The bar chart shows that the frequency score is highly skewed: almost all customers have a frequency score of 1,
+#   while a very small portion jumps to 5.
+#
+# Recommendation for JYSK Romania:
+# - Since most customers are one-time buyers, create initiatives (e.g., loyalty programs, follow-up promotions) to encourage repeat purchases.
+# - For the rare repeat buyers (frequency = 5), consider upselling and cross-selling strategies to maximize their lifetime value.
+# -------------------------------
+
+
+# -------------------------------
+# Image 3: Median Recency by Segment
+# -------------------------------
+# Observation:
+# - The median recency values across segments reveal that Champions and Loyal Customers have high recency scores (near 5),
+#   while segments like Lost or At Risk show very low recency.
+#
+# Recommendation for JYSK Romania:
+# - Maintain strong engagement with customers in high recency segments (Champions and Loyal Customers) by offering regular incentives.
+# - Launch targeted reactivation campaigns for segments with low recency to try to bring them back into active status.
+# -------------------------------
+
+
+# -------------------------------
+# Image 4: Median Monetary by Segment
+# -------------------------------
+# Observation:
+# - The monetary median is highest for segments such as Champions and “Can't Lose Them,” indicating these groups contribute most revenue.
+# - Lower monetary values are observed in segments like New Customers or Lost.
+#
+# Recommendation for JYSK Romania:
+# - Allocate more resources to premium and cross-selling opportunities for high-spending segments.
+# - Introduce personalized discounts or bundle offers for segments with lower monetary scores to increase their average order value.
+# -------------------------------
+
+
+# -------------------------------
+# Image 5: Median Frequency by Segment
+# -------------------------------
+# Observation:
+# - The median frequency data is extremely polarized, with Champions and Loyal Customers showing significantly higher frequencies,
+#   and almost all other segments having a frequency of 1.
+#
+# Recommendation for JYSK Romania:
+# - Design loyalty programs aimed at converting one-time buyers into repeat customers.
+# - For segments with low frequency, consider implementing reminder emails, special repeat-purchase discounts, or loyalty points.
+# -------------------------------
+
+
+# -------------------------------
+# Image 6: Distribution of Segments (e.g., a table/chart showing customer counts per segment)
+# -------------------------------
+# Observation:
+# - The distribution might reveal that a large portion of customers fall into the New or Lost segments,
+#   with only a small percentage in the high-value segments.
+#
+# Recommendation for JYSK Romania:
+# - Invest in re-engagement strategies for the New and Lost segments—such as targeted promotions or win-back campaigns.
+# - Use segmentation insights to tailor marketing messages for each group, with a focus on moving customers from low-value to high-value segments.
+# -------------------------------
+
+
+# -------------------------------
+# Image 7: [Additional Visualization: e.g., Trend Over Time or Segment Evolution]
+# -------------------------------
+# Observation:
+# - If this image shows trends, you might see whether the high-value segments are growing or shrinking over time.
+#
+# Recommendation for JYSK Romania:
+# - Monitor these trends closely to adjust marketing efforts dynamically.
+# - If high-value segments are shrinking, consider boosting retention activities and personalized offers.
+# -------------------------------
+
+
+# -------------------------------
+# Image 8: [Additional Visualization: e.g., Comparative Analysis Across Regions/Channels]
+# -------------------------------
+# Observation:
+# - The visualization might compare RFM performance across different channels or regions.
+#
+# Recommendation for JYSK Romania:
+# - Identify which channels yield the highest RFM scores and allocate more resources there.
+# - Tailor regional strategies based on which segments are over- or under-represented.
+---
+
 ```{r some data exploration}
 #APPLICATION 2
 
