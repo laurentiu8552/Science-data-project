@@ -49,12 +49,28 @@ library(sf)
 ```{r Read the file  - data}
 # Loading dataset 
 data <- read_excel("jysk_case_competition_final.xlsx")
-
-# Deleted duplicates, need more reason as to why
+# Deleted exact duplicates because:
+#   Initially, JYSK writes in their description: There are 424.965 rows split into 173.275 orders, meaning ∼2,5 items per order. This implies that the data is on item level. 1 row = 1 item. It would make sense then that some rows are identical, in cases where the customer, within the same order has purchased 2 or more of the same product. 
+#   However, upon looking at the data set, we identify rows with order.id = Result. Those rows are assumed to be equal to revenue generated for that given day. We used those rows for reconciliation, and found that the numbers only match if we remove duplicates. Although we cannot be sure which duplicate lines are errors and which aren't, we decide to trust the Result rows as a starting point. There are also cases where for the same product, once the revenue is exactly 3,4,5 times higher than in other rows. That also implies that the data set is NOT on item level. Thus, identical, duplicate rows are removed.
 data <- data[!duplicated(data),]
 
+# Rename the column 'order_value_ex_vat_ex_freight' to 'Revenue'
+data <- data %>%
+  dplyr::rename(revenue = order_value_ex_vat_ex_freight)
+# Only include rows with revenue greater than 0 because for our analysis they do not seem relevant. Also it is very difficult to identify what they actually are. Based on values, we think they might be returns or perhaps discounts for product in certain orders, or both.
+data <- data %>% 
+  filter(revenue > 0)
 
-# Imputing missing product groups and categories for least possible data loss during the process
+# Previously mentioned result rows are also filtered out to avoid duplication in calculations and models where Revenue is considered
+data <- data %>%
+  filter(order_id != "Result")
+# Imputing missing ZIP codes as well just so that 
+data$customer_zip_code <- as.character(data$customer_zip_code)
+data$customer_zip_code[is.na(data$customer_zip_code)] <- "9999999999"
+data$customer_zip_code <- as.factor(data$customer_zip_code)
+
+# Imputing missing product groups and categories based on item name that was available for least possible data loss during the process. Due to the complexity we use hard-coded rules that cover the most frequently appearing item names that did not have group and category assigned.
+
   # a, convert empty strings to NA in said columns
 data <- data %>%
   mutate(
@@ -62,7 +78,7 @@ data <- data %>%
     product_category_level_2 = na_if(product_category_level_2, "")
   )
 
-  # b, Define the 'product_title' vector (202 entries) -------
+  # b, Define the 'product_title' vector  -------
 product_title <- c(
   "Mirror NORDBORG 70×90 silver",
   "MA 160x200cm PLUS F30 DREAMZONE",
@@ -268,7 +284,7 @@ product_title <- c(
   "MA 180x200cm GOLD S50 DREAMZONE"
 ) 
 
-# 2) Define the 'product_group_level_1' vector (202 entries) ----------
+  # b, define the 'product_group_level_1' vector  ----------
 product_group_level_1 <- c(
   "Furniture",
   "Mattresses",
@@ -474,7 +490,7 @@ product_group_level_1 <- c(
   "Mattresses"
 )
 
-# 3) Define the 'product_category_level_2' vector (202 entries)
+# c, define the 'product_category_level_2' vector --------
 product_category_level_2 <- c(
   "mirror",
   "Mattresses",
@@ -680,7 +696,7 @@ product_category_level_2 <- c(
   "Mattresses"
 )
 
-# 4) Combine all three vectors into a data frame named 'lookup'
+  # d, combine all three vectors into a data frame named 'lookup'
 lookup <- data.frame(
   product_title = product_title,
   product_group_level_1 = product_group_level_1,
@@ -688,79 +704,32 @@ lookup <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# 5) Print to confirm
+  # e, Print to confirm
 print(lookup, n = nrow(lookup))
 
-
-sum(is.na(data))
-
-library(dplyr)
-
-# 1) Convert empty strings in data to NA (optional)
-data <- data %>%
-  mutate(
-    product_group_level_1 = na_if(product_group_level_1, ""),
-    product_category_level_2 = na_if(product_category_level_2, "")
-  )
-
-# 2) Create data_joined by joining data with lookup on product_title
+  # f, now the actual imputation part
+  # create data_joined by joining data with lookup on product_title
 data <- data %>%
   left_join(lookup, by = "product_title", suffix = c("", ".lkp")) %>%
-  # 3) Replace NAs in original columns with the lookup columns
+  # replace NAs in original columns with the lookup columns
   mutate(
     product_group_level_1 = coalesce(product_group_level_1, product_group_level_1.lkp),
-    product_category_level_2 = coalesce(product_category_level_2, product_category_level_2.lkp)
+    product_category_level_2 = coalesce(product_category_level_2, product_category_level_2.lkp  )
   ) %>%
-  # 4) Remove the extra lookup columns
+  # remove the extra lookup columns
   dplyr::select(-ends_with(".lkp"))
-
-# 5) Print the complete resulting data frame
-print(data, n = nrow(data))
 
 # Convert the 'date' column to Date type
 data$date <- as.Date(data$date, format = "%d.%m.%Y")
-
-#Including 
-january_first_sum <- sum(data$order_value_ex_vat_ex_freight[data$date == "2024-01-01"])
-
-print(paste("Total order value for January 1st: $", round(january_first_sum, 2)))
 # Convert all non-numeric columns (besides 'date') to factors
 data[] <- lapply(data, function(x) if(is.character(x)) as.factor(x) else x)
-
-# Check the structure of the dataset to confirm the changes
-str(data)
-
-# Rename the column 'order_value_ex_vat_ex_freight' to 'Revenue'
-data <- data %>%
-  dplyr::rename(revenue = order_value_ex_vat_ex_freight)
-# impute NA customer id's with 999999999 for now. will be removed in CLV probably
+# Impute NA customer id's with 999999999 for now. Will be removed in CLV probably
 data <- data %>%
   mutate(customer_id = replace_na(customer_id, 9999999999))
-
-# only revenue greater than 0, returns are excluded
-data <- data %>% 
-  filter(revenue > 0)
-
-# filtering out Result rows
-data <- data %>%
-  filter(order_id != "Result")
-
-data$customer_zip_code <- as.character(data$customer_zip_code)
-data$customer_zip_code[is.na(data$customer_zip_code)] <- "9999999999"
-data$customer_zip_code <- as.factor(data$customer_zip_code)
-
-january_first_sum_after_cleaning <- sum(data$revenue[data$date == "2024-01-01"])
 
 sum(is.na(data))
 
 skimr::skim(data)
-
-str(data)
-
-# This basically proves that their own case descriptions is wrong where they say they have 420k rows and 170k orders. Based on result for 1st day, we can only reach that if we remove duplicates, which contradicts what they write in their own description.
-# January 1st sums to 338135 without data cleaning which includes the result row of 169 068. After removing that and cleaning NA's what we get is 167 614 which is approx. equal to the result. We then conclude that it matches so the duplicate rows should indeed be removed!
-# There is also an anomaly which contradicts what they write in the case description.
-# There are 424.965 rows split into 173.275 orders, meaning ∼2,5 items per order. They say that but there are anomalies where in 1 row they have the revenue exactly 5 times higher than for the same product in other rows. This implies 5 of those products was purchased at that time. This contradicts the 1 row = 1 product bought logic they imply. The first point in this comment is also a contradiction.
 ```
 
 ## RFM
@@ -1390,6 +1359,7 @@ library(BTYD)
       #data1 - data_btyd
       #data2 - data_btyd_recency
 ```
+
 ## Association Rules Mining
 
 ```{r ## Association Rules mining new}
