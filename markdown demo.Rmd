@@ -762,7 +762,6 @@ sum(is.na(data))
 skimr::skim(data)
 ```
 
-
 ## RFM
 
 ```{r #APPLICATION1}
@@ -1121,7 +1120,7 @@ clv_data <- clv_data %>%
         
 ```
 
-```{r BG/NBD using calibration matrix}        
+```{r BG/NBD using calibration matrix}
              #### BG/NBD
               ## Model estimation ##
               # Estimate parameters for the BG/NBD model using the calibration matrix
@@ -1135,9 +1134,9 @@ clv_data <- clv_data %>%
               ## Plots ##
               # Calibration period fit - aggregated plots
               bgnbd.PlotFrequencyInCalibration(params.bg, cal.cbs, 7)       
-```             
-              
-```{r Gamma-Gamma monetary model}              
+```
+
+```{r Gamma-Gamma monetary model}
               
                    
   
@@ -1169,8 +1168,8 @@ clv_data <- clv_data %>%
             title = "Actual vs. Expected Average Transaction Value Across Customers"
           )
 ```
-   
-```{r assessing independance for CLV}   
+
+```{r assessing independance for CLV}
         library(ggpubr)
           
               ave.spend #average transaction value in training data
@@ -1234,7 +1233,7 @@ clv_data <- clv_data %>%
 
 ```
 
-```{r Expected CLV and real CLV - some error metrics}  
+```{r Expected CLV and real CLV - some error metrics}
   # Performance measures: expected CLV vs. real CLV
        rmse_bg <- rmse(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
        mae_bg <- mae(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
@@ -1249,7 +1248,7 @@ clv_data <- clv_data %>%
       round(models_stats,3)
 ```
 
-```{r histogram for CLV real}    
+```{r histogram for CLV real}
       # Create a histogram of CLV.real
 hist(cal.cbs.gamma.test$CLV.real, 
      main = "Histogram of CLV.real", 
@@ -1473,6 +1472,7 @@ avg(results)
 
 
 ```
+
 ```{r}
 # filter RFM to match 
 rfm_sample <- segment %>%
@@ -1499,4 +1499,3 @@ final_output <- recommendation_df %>%
 
 
 ```
-
