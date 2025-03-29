@@ -1432,6 +1432,21 @@ ggplot(cal.cbs.gamma.test, aes(x = CLV.pred.bg, y = CLV.real)) +
 
 
 ```
+Scatterplot
+compares each customer's predicted clv using BG/NBD and gamma-gamma model with 
+their actual clv observed during the 1 year holdout period
+
+positive trend - indicates model is able to capture the overall relationship
+between predicted and actual value - customers with higher pred.clv tend to spend
+more - this is what we should expect as customers with a high real clv are spending more
+at the retailer such as jysk
+
+dispersion - for customers with lower pred.clv. Some of these are high value because
+their real clv is high (nearing top left corner of the plot) 
+This could mean that the model underestimates a small group of high-spending customers
+or these customers may have unpredictable spending patterns
+
+
 
 ## Association Rules Mining
 
