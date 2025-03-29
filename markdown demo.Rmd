@@ -776,9 +776,13 @@ sum(is.na(data_clean_rfm$revenue))      # Count NAs in revenue
 
 
 
-# Customer ID bar plot
-barplot(table(data_clean_rfm$customer_id), main = "Customer ID Distribution", col = "blue")
-sum(is.na(data_clean_rfm$customer_id))  # Count NAs in customer_id
+# Customer ID bar plot - Delete later, useless, including the NA checks
+cust_freq <- table(data_clean_rfm$customer_id[data_clean_rfm$customer_id != 9999999999])
+
+# Filter to only those with frequency >= 10
+cust_freq_filtered <- cust_freq[cust_freq >= 35]
+
+barplot(cust_freq_filtered, main = "Customer ID Distribution", col = "blue", las = 2, ylim = c(0, 80))
 
 
 # Date bar plot
