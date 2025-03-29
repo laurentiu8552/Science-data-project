@@ -1361,11 +1361,11 @@ and supports the independence assumption of gamma-gamma
       cal.cbs.gamma.test
  
          
-     
+     # calculate expected CLV (1.year predictions)
       cal.cbs.gamma.test$CLV.pred.bg <- cal.cbs.gamma.test$spend * cal.cbs.gamma.test$yearpred.bg # BG/NBD
       
           
-   
+    # calculate real CLV based on actual sales and transaction frequency
       cal.cbs.gamma.test$CLV.real <- cal.cbs.gamma.test$m.x.avg.real.sale.test * cal.cbs.gamma.test$Freq
 
 ```
@@ -1374,8 +1374,8 @@ and supports the independence assumption of gamma-gamma
   # Performance measures: expected CLV vs. real CLV
        rmse_bg <- rmse(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
        mae_bg <- mae(cal.cbs.gamma.test$CLV.real, cal.cbs.gamma.test$CLV.pred.bg)
-      
-      
+  
+ 
       #### Summary of evaluation (MSE and RMSE)
       models_rmse = cbind(rmse_bg)
       models_mae = cbind(mae_bg)
