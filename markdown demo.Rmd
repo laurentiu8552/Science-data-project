@@ -46,6 +46,22 @@ library(sf)
 
 ## Data pre-processing
 
+Our data handling process had the main focus of preserving and keeping as much data as possible. For a company like JYSK, we believe this is a reasonable approach. More data likely means better models and better understanding. Such a big company has this immense amount of data available, so we should utilize it. Our process includes:
+
+-   Deleting duplicates based on reasoning and reconciliation seen in the comments
+
+-   Filtering to only include revenue \> 0 to exclude irrelevant (or hardly identifiable) rows that are likely returned products or discounts
+
+-   Filtering to exclude Result rows that summarize revenue for that given day
+
+-   Imputing empty ZIP code cells because we do not want NA's but also do not want missing data regarding the products and revenue
+
+-   Imputing empty product categories and groups in cases where the actual product name was available, again to preserve as much info as possible
+
+-   Imputing empty customer ID's with a placeholder instead of deleting, not to lose information on the products
+
+-   Other smaller adjustments to have a more easily usable data set
+
 ```{r Read the file  - data}
 # Loading dataset 
 data <- read_excel("jysk_case_competition_final.xlsx")
