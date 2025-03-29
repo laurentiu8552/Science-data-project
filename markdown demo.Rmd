@@ -1494,7 +1494,13 @@ plot(top10subRules, method = "graph",  engine = "htmlwidget")
 
 ## Recommender systems
 
+<<<<<<< Updated upstream
 test text
+=======
+```{r}
+
+data_rcs <- data
+>>>>>>> Stashed changes
 
 ```{r}
 # Improved Recommender System with Multiple Models and Advanced Features
@@ -1809,7 +1815,6 @@ list(
   segment_analysis = segment_analysis,
   precision_plot = precision_plot
 )
-
 
 
 
