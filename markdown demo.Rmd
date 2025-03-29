@@ -1498,6 +1498,11 @@ plot(top10subRules, method = "graph",  engine = "htmlwidget")
 test text
 =======
 ```{r}
+<<<<<<< Updated upstream
+=======
+
+data_rcs <- data
+>>>>>>> Stashed changes
 
 data_rcs <- data
 >>>>>>> Stashed changes
@@ -1815,7 +1820,6 @@ list(
   segment_analysis = segment_analysis,
   precision_plot = precision_plot
 )
-
 
 
 ```
