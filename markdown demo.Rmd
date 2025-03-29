@@ -1059,71 +1059,43 @@ View(unique_judets_df)
 
 ```
 
-```{r #Application 2 - CLV}
-
-##### Getting the newcomer variable 
-
-
-
+```{r #Application 2 - CLV - setting up the dataset}
 library(dplyr)
 library(lubridate)
-### CLV model 
 
-# Calculate CLV metrics for the training data
+#getting the clv data neccesary
 clv_data <- data %>%
   group_by(customer_id) %>%
   dplyr::summarise(
-    frequency = n(),  # Number of orders
-    mean_monetary_value = revenue,  # Average revenue per order
-    date = date  # Most recent order date
+    sales = revenue,  
+    date = date  
   ) %>%
   ungroup()
 
-#### Adding the newcomer variable
-library(dplyr)
-
+# Getting the helper collumn: first time purchase
 clv_data <- clv_data %>%
-  mutate(newcomer = if_else(frequency == 1, 1, 0))
+  arrange(customer_id, date) %>%  # Ensure data is sorted by date
+  group_by(customer_id) %>%
+  mutate(first_purchase_date = min(date)) %>%  # Get the first purchase date per customer
+  ungroup()
 
-# library(dplyr)
-# clv_data <- clv_data %>% dplyr::select(-frequency)
-
-
-##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PICK UP FROM HERE
-
-    library(dplyr)
-
+#Removing the helper collumns and filtering so no newcomers in the test set
 clv_data <- clv_data %>%
-  mutate(newcomer = ifelse(frequency == 1 & date > as.Date("2024-09-01"), 1, 0))
+  dplyr::filter(first_purchase_date < as.Date("2024-09-01")) %>%
+  dplyr::select(-first_purchase_date)  
 
-clv_data <- clv_data %>% dplyr::select(-frequency)
-    
- 
-data$newcomer <- data$user_jobs
-    data$newcomer[data$user_jobs == 1 & data$date >=as.Date("2021-02-15")] <- "true"
-    
-    data <- data %>% group_by(user_id) %>% filter(!any(newcomer == "true"))
-    data <- as.data.frame(data)
-    str(data)
-   
-# #### splitting the data
-# # Filter training data based on date range
-# train_data <- clv_data %>%
-#   filter(date >= "2024-01-01" & date <= "2024-09-01")
-# 
-# # Filter test data for the remaining dates
-# test_data <- clv_data %>%
-#   filter(date > "2024-09-01")
-# 
-# str(clv_data)
+clv_data <- as.data.frame(clv_data)
 
 
+
+```
+
+```{r Running the CLV models}
 #### 1 model
-#install.packages("BTYD")
 library(BTYD)
 
  # Select subset
-    clv_subset <- mutate(clv_data[,c(1,4,6)], date =as.Date(date)) # gets only needed columns 
+    clv_subset <- mutate(clv_data[,c(1,2,3)], date =as.Date(date)) # gets only needed columns 
     names(clv_subset) <- c("cust", "sales", "date") # model functions expect these names
     length(unique(clv_subset$cust)) # 669 unique customers left
     data_btyd <- dc.MergeTransactionsOnSameDate(clv_subset)
