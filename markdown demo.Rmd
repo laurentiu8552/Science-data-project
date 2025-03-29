@@ -766,6 +766,8 @@ str(data)
 
 #Visualization of the 3 rfm variables
 
+data_clean_rfm <- data
+
 # Revenue histogram
 hist(data_clean_rfm$revenue, main = "Histogram of Revenue", col = "blue", border = "black")
 # Check for NAs
