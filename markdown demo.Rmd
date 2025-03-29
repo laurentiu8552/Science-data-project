@@ -1136,7 +1136,15 @@ clv_data <- clv_data %>%
               # Calibration period fit - aggregated plots
               bgnbd.PlotFrequencyInCalibration(params.bg, cal.cbs, 7)       
 ```             
-              
+Plot shows:
+
+0 repeat purchases - most customers only purchased once
+The model is able to track actual sales well, but is slightly worse at tracking
+1 and 2 repeat purchases
+
+This likely typical in a low-frequency sales environment such as furniture - it can be argued that most
+people make only one large purchase and then disappear for a long time
+
 ```{r Gamma-Gamma monetary model}              
               
                    
@@ -1189,6 +1197,20 @@ clv_data <- clv_data %>%
               cor(data.ass$ave.spend, data.ass$tot.trans.trunc)
               
 ```
+
+Plot comments:
+Customers with only 1 repeat purchase tend to have wider spread in purchase value,
+many high outliers 
+
+As number of repeat purchases increase, the variance in avg. purchase value 
+decreases which could be argued to be expected - we see no movement in the
+median values of the repeat purchases. As no. repeat purchases increase, variance
+decreases which could suggest a more stable average. 
+
+
+Correlation comments:
+Correlation is very close to 0, which should indicate no meaningful correlation
+and supports the independence assumption of gamma-gamma
 
 ```{r setting up the data for next year prediction}
     # BG/NBD 
@@ -1264,6 +1286,21 @@ hist(cal.cbs.gamma.test$CLV.real,
 legend("topright", 
        legend = c("CLV.real"), 
        fill = c(rgb(0, 0, 1, 0.5)))
+
+# add extra plot - density plot instead of histogram
+plot(density(cal.cbs.gamma.test$CLV.real),
+     main = "Density Plot of CLV.real",
+     xlab = "CLV Value",
+     col = "blue",
+     lwd = 2)
+
+# density plot that should somewhat handle left skew
+plot(density(cal.cbs.gamma.test$CLV.real[cal.cbs.gamma.test$CLV.real < 2000]),
+     main = "Density Plot of CLV.real (Capped at 2000 RON)",
+     xlab = "CLV Value",
+     col = "blue",
+     lwd = 2)
+
 
 ```
 
