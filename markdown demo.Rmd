@@ -1,4 +1,4 @@
-### lattice
+### JYSK case competition
 
 ```{r Libraries necessary}
 library(tidyverse)
@@ -45,6 +45,24 @@ library(sf)
 ```
 
 ## Data pre-processing
+
+Our data handling process had the main focus of preserving and keeping as much data as possible. For a company like JYSK, we believe this is a reasonable approach. More data likely means better models and better understanding. Such a big company has this immense amount of data available, so we should utilize it. Our process includes:
+
+-   Deleting duplicates based on reasoning and reconciliation seen in the comments
+
+-   Filtering to only include revenue \> 0 to exclude irrelevant (or hardly identifiable) rows that are likely returned products or discounts
+
+-   Filtering to exclude Result rows that summarize revenue for that given day
+
+-   Imputing empty ZIP code cells because we do not want NA's but also do not want missing data regarding the products and revenue
+
+-   Imputing empty product categories and groups in cases where the actual product name was available, again to preserve as much info as possible
+
+-   Imputing empty customer ID's with a placeholder instead of deleting, not to lose information on the products
+
+-   Other smaller adjustments to have a more easily usable data set
+
+-   Further adjustments to the data set are done in the separate use cases / models / sections
 
 ```{r Read the file  - data}
 # Loading dataset 
@@ -1071,9 +1089,9 @@ clv_data <- as.data.frame(clv_data)
 library(BTYD)
 
  # Select subset
-    clv_subset <- mutate(clv_data[,c(1,2,3)], date =as.Date(date)) # gets only needed columns 
-    names(clv_subset) <- c("cust", "sales", "date") # model functions expect these names
-    length(unique(clv_subset$cust)) # 669 unique customers left
+    clv_subset <- mutate(clv_data[,c(1,2,3)], date =as.Date(date)) 
+    names(clv_subset) <- c("cust", "sales", "date") 
+    length(unique(clv_subset$cust)) 
     data_btyd <- dc.MergeTransactionsOnSameDate(clv_subset)
 
     
@@ -1115,7 +1133,7 @@ library(BTYD)
                 # Plot the fit of the model during calibration period - aggregated data
                 pnbd.PlotFrequencyInCalibration(params.pareto, data_btyd_recency$cal$cbs, censor = 7)
                 
-             
+    summary(cal.cbs)         
                 
        
     
