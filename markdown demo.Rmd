@@ -1435,6 +1435,109 @@ plot(subRules, method = "two-key plot")
 ```{r}
 data_rcs <- data
 
+# Load packages
+library(dplyr)
+library(tidyr)
+library(recommenderlab)
+
+# Step 1: Create binary interaction dataset (purchases)
+interactions <- data %>%
+  dplyr::select(customer_id, product_title) %>%
+  distinct() %>%
+  mutate(purchased = 1)
+
+# Step 2: Sample a subset of customers
+set.seed(42)
+sample_customers <- sample(unique(interactions$customer_id), 1000)
+
+sample_data <- interactions %>%
+  filter(customer_id %in% sample_customers)
+
+# Step 3: Filter to top 100 most purchased products
+top_products <- sample_data %>%
+  dplyr::count(product_title, sort = TRUE) %>%
+  slice_head(n = 100) %>%
+  pull(product_title)
+
+sample_data <- sample_data %>%
+  filter(product_title %in% top_products)
+
+# Step 4: Create wide user-product matrix (1 = purchased)
+interaction_matrix <- sample_data %>%
+  tidyr::pivot_wider(
+    names_from = product_title,
+    values_from = purchased,
+    values_fill = list(purchased = 0)
+  )
+
+# Step 5: Convert to matrix format
+customer_ids <- interaction_matrix$customer_id
+interaction_matrix <- interaction_matrix %>% dplyr::select(-customer_id)
+mat <- as.matrix(interaction_matrix)
+rownames(mat) <- customer_ids
+
+# Step 6: Convert to binaryRatingMatrix
+binary_ratings <- as(mat, "binaryRatingMatrix")
+
+# exploration
+# how many products each customer purchased
+hist(rowCounts(binary_ratings), 
+     main = "Number of Products Purchased per Customer",
+     xlab = "Products", col = "lightblue")
+
+# most purchase one
+
+# how many customers have purchased each product
+hist(colCounts(binary_ratings),
+     main = "Number of Customers per Product",
+     xlab = "Customers", col = "salmon")
+
+# top N most purchased products
+top_products <- data.frame(
+  product_title = colnames(binary_ratings),
+  purchase_count = colCounts(binary_ratings)
+) %>%
+  arrange(desc(purchase_count)) %>%
+  slice(1:10)
+
+print(top_products)
+# same as association rules mining
+
+# plot top products
+library(ggplot2)
+
+ggplot(top_products, aes(x = reorder(product_title, purchase_count), y = purchase_count)) +
+  geom_bar(stat = "identity", fill = "darkblue") +
+  coord_flip() +
+  labs(title = "Top 10 Most Purchased Products",
+       x = "Product", y = "Number of Customers") +
+  theme_minimal()
+
+# remove sparse customers/products
+# Keep customers with more than 5 purchases and products purchased by at least 20 customers
+filtered_ratings <- binary_ratings[rowCounts(binary_ratings) > 5, colCounts(binary_ratings) > 20]
+
+# train/test split
+set.seed(42)
+which_train <- sample(x = c(TRUE, FALSE),
+                      size = nrow(filtered_ratings),
+                      replace = TRUE,
+                      prob = c(0.8, 0.2))
+
+train_data <- filtered_ratings[which_train, ]
+test_data <- filtered_ratings[!which_train, ]
+
+
+
+
+# Step 7: Train the recommender model (User-Based Collaborative Filtering)
+recommender_model <- Recommender(binary_ratings, method = "UBCF")
+
+# Step 8: Generate recommendations for first 5 customers
+recommendations <- predict(recommender_model, binary_ratings[1:5], n = 5)
+
+# Step 9: View recommendations
+as(recommendations, "list")
 
 
 
