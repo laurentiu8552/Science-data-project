@@ -1494,333 +1494,84 @@ plot(top10subRules, method = "graph",  engine = "htmlwidget")
 
 ## Recommender systems
 
-<<<<<<< Updated upstream
-test text
-=======
-```{r}
-<<<<<<< Updated upstream
-=======
-
-data_rcs <- data
->>>>>>> Stashed changes
-
-data_rcs <- data
->>>>>>> Stashed changes
-
-```{r}
-# Improved Recommender System with Multiple Models and Advanced Features
-# Load necessary packages
-library(dplyr)
-library(tidyr)
-library(recommenderlab)
-library(lubridate)
-library(parallel)
-library(ggplot2)
-
-# Set random seed for reproducibility
-set.seed(42)
-
-# Step 1: Data Preparation with Time-based Weighting
-# Assuming data_rcs has customer_id, product_title, purchase_date, and purchase_amount
-data_rcs <- data
-
-# Create weighted interaction dataset considering recency and purchase value
-interactions <- data_rcs %>%
-  dplyr::select(customer_id, product_title, purchase_date, purchase_amount) %>%
-  mutate(
-    days_since = as.numeric(Sys.Date() - purchase_date),
-    recency_weight = exp(-0.01 * days_since),  # Exponential decay for recency
-    purchase_strength = scale(purchase_amount)[,1],  # Standardized purchase amount
-    interaction_weight = 1 + (recency_weight * 0.5) + (purchase_strength * 0.5)  # Combined weight
-  )
-
-# Create binary and weighted interaction datasets
-binary_interactions <- interactions %>%
-  dplyr::select(customer_id, product_title) %>%
-  distinct() %>%
-  mutate(purchased = 1)
-
-weighted_interactions <- interactions %>%
-  group_by(customer_id, product_title) %>%
-  summarize(
-    purchase_count = n(),
-    total_spend = sum(purchase_amount),
-    recent_purchase = max(purchase_date),
-    weighted_score = sum(interaction_weight),
-    .groups = "drop"
-  )
-
-# Step 2: Sample Customers (for development/testing purposes)
-# For a production system, you might use all customers
-sample_size <- min(5000, length(unique(interactions$customer_id)))
-sample_customers <- sample(unique(interactions$customer_id), sample_size)
-sample_data <- binary_interactions %>%
-  filter(customer_id %in% sample_customers)
-
-# Step 3: Product Selection with Popularity Dampening
-# This helps reduce bias toward universally popular items
-product_counts <- sample_data %>%
-  dplyr::count(product_title, sort = TRUE)
-
-# Apply logarithmic dampening to reduce popularity bias
-product_counts <- product_counts %>%
-  mutate(
-    log_count = log1p(n),
-    dampened_score = log_count / (1 + log1p(n) * 0.1)  # Dampening factor
-  ) %>%
-  arrange(desc(dampened_score))
-
-# Select top products after dampening (increased from 100 to 250)
-top_products <- product_counts %>%
-  slice_head(n = 250) %>%
-  pull(product_title)
-
-sample_data <- sample_data %>%
-  filter(product_title %in% top_products)
-
-# Step 4: Create User-Item Matrices (both binary and weighted)
-# Binary matrix
-binary_matrix <- sample_data %>%
-  tidyr::pivot_wider(
-    names_from = product_title,
-    values_from = purchased,
-    values_fill = list(purchased = 0)
-  )
-
-# Store customer IDs
-customer_ids <- binary_matrix$customer_id
-binary_matrix <- binary_matrix %>% dplyr::select(-customer_id)
-binary_mat <- as.matrix(binary_matrix)
-rownames(binary_mat) <- customer_ids
-
-# Weighted matrix (for advanced models)
-weighted_data <- weighted_interactions %>%
-  filter(customer_id %in% sample_customers,
-         product_title %in% top_products)
-
-weighted_matrix <- weighted_data %>%
-  tidyr::pivot_wider(
-    id_cols = customer_id,
-    names_from = product_title,
-    values_from = weighted_score,
-    values_fill = list(weighted_score = 0)
-  )
-
-weighted_customer_ids <- weighted_matrix$customer_id
-weighted_matrix <- weighted_matrix %>% dplyr::select(-customer_id)
-weighted_mat <- as.matrix(weighted_matrix)
-rownames(weighted_mat) <- weighted_customer_ids
-
-# Step: 5 Convert to recommenderlab format
-binary_ratings <- as(binary_mat, "binaryRatingMatrix")
-weighted_ratings <- as(weighted_mat, "realRatingMatrix")
-
-# Step 6: Filter sparse data with improved thresholds
-min_items_per_user <- 3
-min_users_per_item <- 5
-
-# Apply filtering
-filtered_binary <- binary_ratings[
-  rowCounts(binary_ratings) >= min_items_per_user,
-  colCounts(binary_ratings) >= min_users_per_item
-]
-
-filtered_weighted <- weighted_ratings[
-  rowCounts(weighted_ratings) >= min_items_per_user, 
-  colCounts(weighted_ratings) >= min_users_per_item
-]
-
-# Step 7: Create evaluation scheme with cross-validation
-n_folds <- 5
-
-# For binary data
-scheme_binary <- evaluationScheme(
-  filtered_binary,
-  method = "cross-validation",
-  k = n_folds,
-  given = 3,  # Number of items to use as training data for each test user
-  goodRating = 1
-)
-
-# For weighted data
-scheme_weighted <- evaluationScheme(
-  filtered_weighted,
-  method = "cross-validation",
-  k = n_folds,
-  given = 3
-)
-
-# Step 8: Define multiple recommendation algorithms to compare
-algorithms <- list(
-  IBCF_cos = list(name = "IBCF", param = list(k = 30, method = "cosine")),
-  IBCF_cor = list(name = "IBCF", param = list(k = 30, method = "pearson")),
-  UBCF = list(name = "UBCF", param = list(method = "cosine", nn = 25)),
-  SVD = list(name = "SVD", param = list(k = 10)),
-  Pop = list(name = "POPULAR", param = NULL),
-  # Adding a hybrid approach that combines IBCF and POPULAR
-  Hybrid = list(name = "HYBRID", param = list(
-    recommenders = c("IBCF", "POPULAR"),
-    weights = c(0.7, 0.3)
-  ))
-)
-
-# Step 9: Evaluate multiple models (using parallel processing for speed)
-n_cores <- detectCores() - 1
-cl <- makeCluster(n_cores)
-
-# Function to evaluate a single model
-evaluate_model <- function(scheme, algorithm, ns) {
-  recommenderlab::evaluate(scheme, 
-                          method = algorithm$name, 
-                          param = algorithm$param, 
-                          n = ns)
-}
-
-# For binary data - evaluate all models
-ns <- c(1, 5, 10, 15)
-binary_results <- lapply(algorithms, function(algo) {
-  evaluate_model(scheme_binary, algo, ns)
-})
-names(binary_results) <- names(algorithms)
-
-# For weighted data - evaluate models that support real-valued ratings
-weighted_algorithms <- algorithms[c("IBCF_cos", "IBCF_cor", "UBCF", "SVD")]
-weighted_results <- lapply(weighted_algorithms, function(algo) {
-  evaluate_model(scheme_weighted, algo, ns)
-})
-names(weighted_results) <- names(weighted_algorithms)
-
-stopCluster(cl)
-
-# Step 10: Compare and visualize results
-binary_avg_results <- sapply(binary_results, function(x) {
-  getConfusionMatrix(x)$prec
-})
-
-# Plot comparison of precision for different algorithms
-results_df <- data.frame(
-  Algorithm = rep(names(binary_results), each = length(ns)),
-  N = rep(ns, times = length(binary_results)),
-  Precision = as.vector(binary_avg_results)
-)
-
-precision_plot <- ggplot(results_df, aes(x = N, y = Precision, color = Algorithm, group = Algorithm)) +
-  geom_line() +
-  geom_point() +
-  theme_minimal() +
-  labs(title = "Precision Comparison of Recommendation Algorithms",
-       x = "Number of Recommendations",
-       y = "Precision")
-
-# Step 11: Select the best performing model based on evaluation
-# In this case, we'll choose the model with the highest precision at n=5
-best_model_idx <- which.max(binary_avg_results[ns == 5, ])
-best_model_name <- names(binary_results)[best_model_idx]
-best_model_params <- algorithms[[best_model_name]]$param
-
-cat("Best model: ", best_model_name, "\n")
-
-# Step 12: Train the best model on the full dataset
-recommender_model <- Recommender(
-  filtered_binary, 
-  method = algorithms[[best_model_name]]$name,
-  parameter = best_model_params
-)
-
-# Step 13: Generate recommendations for all users
-n_recommended <- 10
-all_predictions <- predict(recommender_model, filtered_binary, n = n_recommended, type = "topNList")
-recommendation_list <- as(all_predictions, "list")
-
-# Step 14: Create recommendations dataframe
-recommendation_df <- data.frame(
-  customer_id = names(recommendation_list),
-  stringsAsFactors = FALSE
-)
-
-# Add recommendations as separate columns
-for (i in 1:n_recommended) {
-  col_name <- paste0("recommendation_", i)
-  recommendation_df[[col_name]] <- sapply(recommendation_list, function(x) {
-    if (length(x) >= i) return(x[i]) else return(NA)
-  })
-}
-
-# Also add concatenated recommendations
-recommendation_df$all_recommendations <- sapply(recommendation_list, paste, collapse = ", ")
-
-# Step 15: Integrate with RFM segmentation
-# Assuming segment dataframe exists with customer RFM data
-rfm_sample <- segment %>%
-  filter(customer_id %in% recommendation_df$customer_id)
-
-# Match data types  
-recommendation_df$customer_id <- as.character(recommendation_df$customer_id)
-rfm_sample$customer_id <- as.character(rfm_sample$customer_id)
-
-# Create the final output
-final_output <- recommendation_df %>%
-  dplyr::left_join(rfm_sample, by = "customer_id")
-
-# Step 16: Add explanation for recommendations
-if (best_model_name %in% c("IBCF_cos", "IBCF_cor")) {
-  # Extract item similarity matrix for recommendation explanation
-  model_details <- getModel(recommender_model)
-  sim_matrix <- model_details$sim
+# Add cross-validation and k parameter tuning
+# First, let's set up a function to evaluate different k values
+evaluate_k_values <- function(data, k_values) {
+  results <- list()
   
-  # Function to get similar items that led to recommendation
-  get_explanation <- function(user_id, item_id, top_n = 3) {
-    # Get user's purchased items
-    user_items <- names(which(as.vector(filtered_binary[user_id, ]) == 1))
+  for (k in k_values) {
+    # Create evaluation scheme with k-fold cross-validation
+    scheme <- evaluationScheme(data, method = "cross-validation", k = 5, given = -1)
     
-    # Get similarity scores between recommended item and user's items
-    if (length(user_items) == 0) return("Based on popularity")
+    # Evaluate with current k parameter
+    eval_results <- evaluate(scheme, method = "IBCF", parameter = list(k = k), n = c(1, 3, 5, 10))
     
-    item_similarities <- sim_matrix[item_id, user_items, drop = FALSE]
-    if (length(item_similarities) == 0) return("Based on popularity")
-    
-    # Sort and get top similar items
-    sorted_items <- sort(item_similarities, decreasing = TRUE)
-    top_items <- names(sorted_items)[1:min(top_n, length(sorted_items))]
-    
-    paste("Because you purchased:", paste(top_items, collapse = ", "))
+    # Store results
+    results[[as.character(k)]] <- eval_results
   }
   
-  # Add explanation for the first recommendation
-  recommendation_df$explanation <- mapply(
-    get_explanation,
-    recommendation_df$customer_id,
-    recommendation_df$recommendation_1
-  )
+  return(results)
 }
 
-# Step 17: Segment-specific recommendations
-# Optional: create separate models for different RFM segments
-# Here we simply analyze how recommendations differ by segment
+# Define range of k values to test
+k_values <- c(10, 20, 30, 40, 50)
 
-segment_analysis <- final_output %>%
-  group_by(rfm_segment) %>%
-  summarize(
-    avg_recency = mean(recency, na.rm = TRUE),
-    avg_frequency = mean(frequency, na.rm = TRUE),
-    avg_monetary = mean(monetary, na.rm = TRUE),
-    count = n(),
-    .groups = "drop"
+# Run evaluation
+cv_results <- evaluate_k_values(filtered_ratings, k_values)
+
+# Extract and compare results
+comparison <- lapply(names(cv_results), function(k) {
+  # Get average metrics for each k value
+  res <- avg(cv_results[[k]])
+  data.frame(
+    k = k,
+    TP_Rate = res["TPR", "5"],  # True Positive Rate at n=5
+    Precision = res["precision", "5"],  # Precision at n=5
+    Recall = res["recall", "5"]  # Recall at n=5
   )
+})
 
-# Step 18: Save results
-# write.csv(final_output, "personalized_recommendations.csv", row.names = FALSE)
-# save(recommender_model, file = "recommender_model.RData")
+# Combine results
+comparison_df <- do.call(rbind, comparison)
 
-# Return the final recommendations and model comparison
-list(
-  recommendations = final_output,
-  model_comparison = results_df,
-  best_model = best_model_name,
-  segment_analysis = segment_analysis,
-  precision_plot = precision_plot
+# Find the best k value based on precision
+best_k <- as.numeric(comparison_df$k[which.max(comparison_df$Precision)])
+print(paste("Best k value based on precision at n=5:", best_k))
+
+# Visualize results if desired
+if (require(ggplot2)) {
+  ggplot(comparison_df, aes(x = k, y = Precision, group = 1)) +
+    geom_line() +
+    geom_point() +
+    labs(title = "Precision at n=5 for different k values",
+         x = "Number of neighbors (k)",
+         y = "Precision")
+}
+
+# Train final model with the best k
+final_recommender <- Recommender(filtered_ratings, method = "IBCF", 
+                                parameter = list(k = best_k))
+
+# Make predictions
+n_recommended <- 5
+final_predictions <- predict(final_recommender, newdata = test_data, n = n_recommended)
+final_recommendation_list <- as(final_predictions, "list")
+names(final_recommendation_list) <- rownames(test_data)
+
+# Create final output
+final_recommendation_df <- data.frame(
+  customer_id = names(final_recommendation_list),
+  recommended_items = sapply(final_recommendation_list, paste, collapse = ", "),
+  k_value_used = best_k
 )
 
+# Join with RFM data
+final_recommendation_df$customer_id <- as.character(final_recommendation_df$customer_id)
+final_output <- final_recommendation_df %>%
+  dplyr::left_join(rfm_sample, by = "customer_id")
+
+# Print first few recommendations
+head(final_output)
 
 ```
 
