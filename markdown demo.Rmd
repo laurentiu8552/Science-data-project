@@ -949,7 +949,6 @@ rfm_plot_median_frequency(segment, sort = TRUE)
 # Recommendation for JYSK Romania:
 # - Invest in re-engagement strategies for the New and Lost segments—such as targeted promotions or win-back campaigns.
 # - Use segmentation insights to tailor marketing messages for each group, with a focus on moving customers from low-value to high-value segments.
-# -------------------------------
 ---
 
 ```{r some data exploration}
@@ -1395,7 +1394,9 @@ ggplot(cal.cbs.gamma.test, aes(x = CLV.pred.bg, y = CLV.real)) +
 
 ## Association Rules Mining
 
-```{r ## Association Rules mining new}
+-   The association rules will delve into the products inter-relationships and provide insights about the products bought together
+
+```{r Association - cleaning the data}
 # Take dataset
 library(skimr)
 data_asm <- data
@@ -1408,7 +1409,7 @@ skim(data_asm)
 
 ```
 
-```{r}
+```{r Association - preparing the transaction dataframe}
 transacData <- plyr::ddply(data_asm, c("order_id","date"),
                            function(df1)paste(df1$product_title,collapse = ","))
 
@@ -1431,20 +1432,21 @@ summary(tr)
 
 ```
 
-```{r}
+```{r PLot for the top 20 relative and absolute items frequency}
 library(RColorBrewer)
-itemFrequencyPlot(tr,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), 
+itemFrequencyPlot(tr,topN=25,type="absolute",col=brewer.pal(8,'Pastel2'), 
                   main="Absolute Item Frequency Plot")
 
-itemFrequencyPlot(tr,topN=20,type="relative",col=brewer.pal(8,'Pastel2'),
+itemFrequencyPlot(tr,topN=25,type="relative",col=brewer.pal(8,'Pastel2'),
                   main="Relative Item Frequency Plot")
 
 ```
 
-```{r}
-# Look for association rules
+-   most frequent products bought by the customers : DUV 1320g BAGN warm 200x220cm : 1662 Folding table KULESKOG W75xL180 white : 1255 Clothes rail GUDME double black/chrome : 1243\
+    PIL 750g TRONFJELLET 50x70cm: 1188 BTH ENGBLOMME 220x240 rose" 1050
 
-# somewhat strict confidence
+```{r confidence 0.8  and support 0.001}
+
 association.rules <- apriori(tr, 
                              parameter = list(supp=0.001, conf=0.8,maxlen=10))
 
@@ -1452,7 +1454,7 @@ summary(association.rules)
 
 ```
 
-```{r}
+```{r inspecting the rules at 0.8 confidence}
 inspect(association.rules)
 
 sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
@@ -1460,9 +1462,12 @@ sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
 inspect(sortedRules1) 
 ```
 
-```{r}
-# confidence set lower at 0.6
-# this has some implications on the statistical 
+-   At 0.8 confidence 3 rules were found: {MA 60x186x12} =\> {5cm PLUS F15 chair} {5cm PLUS F15 chair} =\> {MA 60x186x12} {Back cushion DUNHAMMER 35x75 beige} =\> {BTH DUNHAMMER 220x240 beige}
+
+The first 3 in particular have a lift of 776 indicating a strong relationship of the items bought together
+
+```{r 0.6 confidence and support 0.0005}
+
 relaxed.rules <- apriori(tr, 
                              parameter = list(supp=0.0005, conf=0.6,maxlen=10))
 summary(relaxed.rules)
@@ -1475,19 +1480,35 @@ inspect(sortedRules2)
 
 ```
 
-```{r}
-# plot association rules - relaxed
+-   Due to the relaxed support and confidence now a list of 17 of items bought together.
+
+```{r plot for rules with confidence above 0.4 }
+
 library(arulesViz)
 subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
 plot(subRules)
 ```
 
-```{r}
+-   The plot provides the situation of the 17 rules found previously and mapping them on the scale of confidence and support, the best ones are the ones situated at the highest confidence and highest support
+
+```{r plot for 17 rules and their respective confidence and support}
 # interactive plot
 
 plot(subRules, method = "two-key plot")
 
 ```
+
+-   The plot provides a representation of the order 2 and 3 rules. THe order 3 ones are clearly low in support and lower in confidence compared the order 2 ones.
+
+```{r plotting on the html widget library}
+
+top10subRules <- head(subRules, n = 10, by = "confidence")
+plot(top10subRules, method = "graph",  engine = "htmlwidget")
+```
+
+-   The plot shows a clear interrelationship between the top 5 order 3 rules. Their confidence is above 0.6, but a high lift around 700 - it provides insights into plate and bowl products
+-   A circular relationship with a high lift and confidence is seen in the products MA 60x186x12 and 5cm PLUS F15 chair.
+-   Additionally a relationship which point to the same bought product {Basket INFINITY 4} happens upon the purchase of {5L plastic white} and {5L plastic grey}. The rules are high in lift around 1000 and with a confidence of 1.
 
 ## Recommender systems
 
