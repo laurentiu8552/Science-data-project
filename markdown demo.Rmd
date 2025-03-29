@@ -62,6 +62,8 @@ Our data handling process had the main focus of preserving and keeping as much d
 
 -   Other smaller adjustments to have a more easily usable data set
 
+-   Further adjustments to the data set are done in the separate use cases / models / sections
+
 ```{r Read the file  - data}
 # Loading dataset 
 data <- read_excel("jysk_case_competition_final.xlsx")
