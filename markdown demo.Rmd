@@ -768,7 +768,7 @@ skimr::skim(data)
 
 #Visualization of the 3 rfm variables
 
-data_clean_rfm = data
+data_clean_rfm <- data[data$customer_id != 9999999999, ]
 
 # Revenue histogram
 hist(data_clean_rfm$revenue, main = "Histogram of Revenue", col = "blue", border = "black")
@@ -778,7 +778,7 @@ sum(is.na(data_clean_rfm$revenue))      # Count NAs in revenue
 
 
 # Customer ID bar plot - Delete later, useless, including the NA checks
-cust_freq <- table(data_clean_rfm$customer_id[data_clean_rfm$customer_id != 9999999999])
+cust_freq <- table(data_clean_rfm$customer_id)
 
 # Filter to only those with frequency >= 10
 cust_freq_filtered <- cust_freq[cust_freq >= 35]
@@ -812,6 +812,9 @@ rfm_plot_heatmap(rfm_result)
 
 # Bar chart of RFM scores
 rfm_bar_chart(rfm_result)
+
+table(rfm_result$rfm$recency_score)
+table(rfm_result$rfm$frequency_score)
 
 
 
