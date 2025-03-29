@@ -64,12 +64,24 @@ Our data handling process had the main focus of preserving and keeping as much d
 
 -   Further adjustments to the data set are done in the separate use cases / models / sections
 
+Discussion on rows possibly containing more items: As opposed to the description which assumes 1 item per order, we ran into the problem of quantities. Let's take 2 examples:
+
+-   Product ID: 6112239 in many lines generates 63.03 (sometimes 56.73 on other days due to price changes during the year, which is an issue in itself, but one that we decided not to follow up on this time because the period is only 1 year and the changes %-wise aren't big). Then in another line the revenue is 189,07 which is exactly 3 times higher. This directly implies that we are not talking about 1 item per 1 row.
+
+-   Same thing happens with product 6112118. The most frequent revenue (presumably price per unit) is 34,66. There is a row with revenue generated 1559,85 which is exactly 45 times higher.
+
+These anomalies make it rather hard to generalize the data to a format where we can make sure that 1 row contains only 1 item from a certain order. One possible solution would be to take the most frequent revenue value in a product, and based on division of revenue, create a quantity column. Afterwards, x many new identical rows with the given product (and price per unit as revenue) could be generated where x is equal to quantity of the initial row. Then the row with quantity of let's say 5 would be deleted, after having distributed the revenue into 5 new rows. **With this method we could make sure that each row contains only 1 item from 1 product in a certain order.**
+
+In this project, for our models we decided not to go with this method as it was not crucial from the recommendations standpoint, but for data clarity and further analysis, it surely would make a difference.
+
+Another observation we had is that on specific days like November 23rd and February 1st, each and every row has it's customer id and zip codes missing. This could raise the suspicion of data collection errors from the company's side on specific days, which we thought should be noted and possibly looked into.
+
 ```{r Read the file  - data}
 # Loading dataset 
 data <- read_excel("jysk_case_competition_final.xlsx")
 # Deleted exact duplicates because:
 #   Initially, JYSK writes in their description: There are 424.965 rows split into 173.275 orders, meaning ∼2,5 items per order. This implies that the data is on item level. 1 row = 1 item. It would make sense then that some rows are identical, in cases where the customer, within the same order has purchased 2 or more of the same product. 
-#   However, upon looking at the data set, we identify rows with order.id = Result. Those rows are assumed to be equal to revenue generated for that given day. We used those rows for reconciliation, and found that the numbers only match if we remove duplicates. Although we cannot be sure which duplicate lines are errors and which aren't, we decide to trust the Result rows as a starting point. There are also cases where for the same product, once the revenue is exactly 3,4,5 times higher than in other rows. That also implies that the data set is NOT on item level. Thus, identical, duplicate rows are removed.
+#   However, upon looking at the data set, we identify rows with order.id = Result. Those rows are assumed to be equal to revenue generated for that given day. We used those rows for reconciliation, and found that the numbers only match if we remove duplicates. Although we cannot be sure which duplicate lines are errors and which aren't, we decide to trust the Result rows as a starting point. There are also cases where the revenue is exactly 2,3,4,5 times higher than in other rows containing the same product. That also implies that the data set is NOT on item level. Thus, identical, duplicate rows are removed.
 data <- data[!duplicated(data),]
 
 # Rename the column 'order_value_ex_vat_ex_freight' to 'Revenue'
@@ -1450,8 +1462,8 @@ ggplot(top_products, aes(x = reorder(product_title, purchase_count), y = purchas
   theme_minimal()
 
 # remove sparse customers/products
-# Keep customers with more than 5 purchases and products purchased by at least 20 customers
-filtered_ratings <- binary_ratings[rowCounts(binary_ratings) > 5, colCounts(binary_ratings) > 20]
+# Keep customers with more 
+filtered_ratings <- binary_ratings[rowCounts(binary_ratings) > 2, colCounts(binary_ratings) > 5]
 
 # train/test split
 set.seed(42)
@@ -1463,17 +1475,35 @@ which_train <- sample(x = c(TRUE, FALSE),
 train_data <- filtered_ratings[which_train, ]
 test_data <- filtered_ratings[!which_train, ]
 
+summary(rowCounts(binary_ratings))
+summary(colCounts(binary_ratings))
+
+# Build IBCF model (item-based)
+recommender_model <- Recommender(train_data, method = "IBCF", parameter = list(k = 30))
+
+# generate recommendations
+n_recommended <- 5
+
+predicted <- predict(
+  object = recommender_model,
+  newdata = test_data,
+  n = n_recommended
+)
 
 
+recommendation_list <- as(predicted, "list")
 
-# Step 7: Train the recommender model (User-Based Collaborative Filtering)
-recommender_model <- Recommender(binary_ratings, method = "UBCF")
+# Show first 3 users’ recommendations
+recommendation_list[1:3]
 
-# Step 8: Generate recommendations for first 5 customers
-recommendations <- predict(recommender_model, binary_ratings[1:5], n = 5)
+# evaluate model performance
+scheme <- evaluationScheme(filtered_ratings, method = "split", train = 0.8, given = -1)
 
-# Step 9: View recommendations
-as(recommendations, "list")
+results <- evaluate(scheme, method = "IBCF", n = c(1, 3, 5, 10))
+
+avg(results)
+
+
 
 
 
