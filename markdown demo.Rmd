@@ -762,6 +762,7 @@ sum(is.na(data))
 skimr::skim(data)
 ```
 
+
 ## RFM
 
 ```{r #APPLICATION1}
@@ -1119,8 +1120,7 @@ clv_data <- clv_data %>%
           variable.names(cal.cbs)
         
 ```
- 
-          
+
 ```{r BG/NBD using calibration matrix}        
              #### BG/NBD
               ## Model estimation ##
@@ -1136,7 +1136,6 @@ clv_data <- clv_data %>%
               # Calibration period fit - aggregated plots
               bgnbd.PlotFrequencyInCalibration(params.bg, cal.cbs, 7)       
 ```             
-              
               
 ```{r Gamma-Gamma monetary model}              
               
@@ -1249,6 +1248,7 @@ clv_data <- clv_data %>%
       colnames(models_stats) = c("BG/NBD")
       round(models_stats,3)
 ```
+
 ```{r histogram for CLV real}    
       # Create a histogram of CLV.real
 hist(cal.cbs.gamma.test$CLV.real, 
