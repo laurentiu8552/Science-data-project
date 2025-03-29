@@ -1,4 +1,4 @@
-### lattice
+### JYSK case competition
 
 ```{r Libraries necessary}
 library(tidyverse)
