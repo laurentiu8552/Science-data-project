@@ -74,6 +74,8 @@ These anomalies make it rather hard to generalize the data to a format where we 
 
 In this project, for our models we decided not to go with this method as it was not crucial from the recommendations standpoint, but for data clarity and further analysis, it surely would make a difference.
 
+Another observation we had is that on specific days like November 23rd and February 1st, each and every row has it's customer id and zip codes missing. This could raise the suspicion of data collection errors from the company's side on specific days, which we thought should be noted and possibly looked into.
+
 ```{r Read the file  - data}
 # Loading dataset 
 data <- read_excel("jysk_case_competition_final.xlsx")
