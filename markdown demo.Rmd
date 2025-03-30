@@ -1778,10 +1778,11 @@ avg(results)
 ```
 
 ```{r}
-# filter RFM to match 
+# Filter RFM to match recommendation users
 rfm_sample <- segment %>%
-  filter(customer_id %in% names(recommendation_list))  # safer than rownames(mat)
+  filter(customer_id %in% names(recommendation_list))
 
+# Create recommendation data frame
 recommendation_df <- data.frame(
   customer_id = names(recommendation_list),
   recommended_items = sapply(recommendation_list, paste, collapse = ", ")
@@ -1791,13 +1792,13 @@ recommendation_df <- data.frame(
 recommendation_df$customer_id <- as.character(recommendation_df$customer_id)
 rfm_sample$customer_id <- as.character(rfm_sample$customer_id)
 
+# Join recommendations with RFM data
 final_output <- recommendation_df %>%
   dplyr::left_join(rfm_sample, by = "customer_id")
 
+print(table(final_output$segment))
 
-
-
-
+view(final_output)
 
 
 
