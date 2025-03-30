@@ -1774,7 +1774,6 @@ recommendation_list <- as(predicted, "list")
 names(recommendation_list) <- rownames(test_data)
 
 
-
 # Show first 3 users’ recommendations
 recommendation_list[1:3]
 
