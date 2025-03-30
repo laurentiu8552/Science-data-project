@@ -1478,9 +1478,12 @@ summary(tr)
 
 ```{r PLot for the top 20 relative and absolute items frequency}
 library(RColorBrewer)
-itemFrequencyPlot(tr,topN=25,type="absolute",col=brewer.pal(8,'Pastel2'), 
+
+# top 10 most frequently bought items
+itemFrequencyPlot(tr,topN=10,type="absolute",col=brewer.pal(8,'Pastel2'), 
                   main="Absolute Item Frequency Plot")
 
+# top 25 most frequently bought items
 itemFrequencyPlot(tr,topN=25,type="relative",col=brewer.pal(8,'Pastel2'),
                   main="Relative Item Frequency Plot")
 
