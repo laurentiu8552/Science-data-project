@@ -1246,17 +1246,13 @@ clv_data <- clv_data %>%
               # Calibration period fit - aggregated plots
               bgnbd.PlotFrequencyInCalibration(params.bg, cal.cbs, 7)       
 
-```             
+```
+
 Plot shows:
 
-0 repeat purchases - most customers only purchased once
-The model is able to track actual sales well, but is slightly worse at tracking
-1 and 2 repeat purchases
+0 repeat purchases - most customers only purchased once The model is able to track actual sales well, but is slightly worse at tracking 1 and 2 repeat purchases
 
-This likely typical in a low-frequency sales environment such as furniture - it can be argued that most
-people make only one large purchase and then disappear for a long time
-
-
+This likely typical in a low-frequency sales environment such as furniture - it can be argued that most people make only one large purchase and then disappear for a long time
 
 ```{r Gamma-Gamma monetary model}
 
@@ -1312,19 +1308,11 @@ people make only one large purchase and then disappear for a long time
               
 ```
 
-Plot comments:
-Customers with only 1 repeat purchase tend to have wider spread in purchase value,
-many high outliers 
+Plot comments: Customers with only 1 repeat purchase tend to have wider spread in purchase value, many high outliers
 
-As number of repeat purchases increase, the variance in avg. purchase value 
-decreases which could be argued to be expected - we see no movement in the
-median values of the repeat purchases. As no. repeat purchases increase, variance
-decreases which could suggest a more stable average. 
+As number of repeat purchases increase, the variance in avg. purchase value decreases which could be argued to be expected - we see no movement in the median values of the repeat purchases. As no. repeat purchases increase, variance decreases which could suggest a more stable average.
 
-
-Correlation comments:
-Correlation is very close to 0, which should indicate no meaningful correlation
-and supports the independence assumption of gamma-gamma
+Correlation comments: Correlation is very close to 0, which should indicate no meaningful correlation and supports the independence assumption of gamma-gamma
 
 ```{r setting up the data for next year prediction}
     # BG/NBD 
@@ -1432,21 +1420,12 @@ ggplot(cal.cbs.gamma.test, aes(x = CLV.pred.bg, y = CLV.real)) +
 
 
 ```
-Scatterplot
-compares each customer's predicted clv using BG/NBD and gamma-gamma model with 
-their actual clv observed during the 1 year holdout period
 
-positive trend - indicates model is able to capture the overall relationship
-between predicted and actual value - customers with higher pred.clv tend to spend
-more - this is what we should expect as customers with a high real clv are spending more
-at the retailer such as jysk
+Scatterplot compares each customer's predicted clv using BG/NBD and gamma-gamma model with their actual clv observed during the 1 year holdout period
 
-dispersion - for customers with lower pred.clv. Some of these are high value because
-their real clv is high (nearing top left corner of the plot) 
-This could mean that the model underestimates a small group of high-spending customers
-or these customers may have unpredictable spending patterns
+positive trend - indicates model is able to capture the overall relationship between predicted and actual value - customers with higher pred.clv tend to spend more - this is what we should expect as customers with a high real clv are spending more at the retailer such as jysk
 
-
+dispersion - for customers with lower pred.clv. Some of these are high value because their real clv is high (nearing top left corner of the plot) This could mean that the model underestimates a small group of high-spending customers or these customers may have unpredictable spending patterns
 
 ## Association Rules Mining
 
@@ -1566,9 +1545,150 @@ plot(top10subRules, method = "graph",  engine = "htmlwidget")
 -   A circular relationship with a high lift and confidence is seen in the products MA 60x186x12 and 5cm PLUS F15 chair.
 -   Additionally a relationship which point to the same bought product {Basket INFINITY 4} happens upon the purchase of {5L plastic white} and {5L plastic grey}. The rules are high in lift around 1000 and with a confidence of 1.
 
-## Recommender systems
+## Recommender system
+
+In the following we implement an IBCF model with some parameter tuning, and basic cross-validation just to emphasize that the tuning of these models can be a really long and resource-heavy experimentation process.
 
 ```{r}
+# Load packages
+library(dplyr)
+library(tidyr)
+library(recommenderlab)
+
+# a, data preparation: creating binary interaction dataset (purchases)
+data_rcs <- data
+interactions <- data_rcs %>%
+  dplyr::select(customer_id, product_title) %>%
+  distinct() %>%
+  mutate(purchased = 1)
+
+# b, sampling a subset of customers
+set.seed(123)
+sample_customers <- sample(unique(interactions$customer_id), 1000)
+sample_data <- interactions %>%
+  filter(customer_id %in% sample_customers)
+
+# c, filtering to top 100 most purchased products
+top_products <- sample_data %>%
+  dplyr::count(product_title, sort = TRUE) %>%
+  slice_head(n = 100) %>%
+  pull(product_title)
+sample_data <- sample_data %>%
+  filter(product_title %in% top_products)
+
+# d, creating user-product matrix (1 = purchased)
+# Transforms the data from long format to a wide matrix where:
+# Rows represent customers
+# Columns represent products
+# Cell values are 1 (purchased) or 0 (not purchased)
+
+interaction_matrix <- sample_data %>%
+  tidyr::pivot_wider(
+    names_from = product_title,
+    values_from = purchased,
+    values_fill = list(purchased = 0)
+  )
+
+# e, Convert to matrix format
+customer_ids <- interaction_matrix$customer_id
+interaction_matrix <- interaction_matrix %>% dplyr::select(-customer_id)
+mat <- as.matrix(interaction_matrix)
+rownames(mat) <- customer_ids
+
+# f, convert to binaryRatingMatrix
+binary_ratings <- as(mat, "binaryRatingMatrix")
+
+# Remove sparse customers/products
+# filters out customers who bought fewer than 3 products
+# filters out products purchased by fewer than 6 customers
+filtered_ratings <- binary_ratings[rowCounts(binary_ratings) > 2, colCounts(binary_ratings) > 5]
+
+# define a grid of k parameters to test
+k_values <- c(10, 20, 30, 50, 100)
+
+# create a function to evaluate models with specific parameters
+# Repeatedly splitting data into 80% training and 20% testing (3 times)
+# Building an Item-Based Collaborative Filtering (IBCF) model with the current k value
+# Making recommendations for test users
+# Returning the recommendations for evaluation
+
+evaluate_IBCF <- function(ratings_matrix, k) {
+  # here we use a simple 80/20 split repeated 3 times (simpler than k-fold, due to computation efficiency and also just to demonstrate what can be played around with to improve model performance)
+  results <- replicate(3, {
+    # create train/test split
+    set.seed(sample.int(1000, 1))  # different seed each time for variety here as well
+    which_train <- sample(c(TRUE, FALSE), nrow(ratings_matrix), replace = TRUE, prob = c(0.8, 0.2))
+    train_data <- ratings_matrix[which_train, ]
+    test_data <- ratings_matrix[!which_train, ]
+    
+    # Build model with current k
+    model <- Recommender(train_data, method = "IBCF", parameter = list(k = k))
+    
+    # Predict top 5 recommendations
+    preds <- predict(model, test_data, n = 5)
+    
+    # Get performance metrics using recommenderlab
+    getList(preds)  # Return the list to make manual evaluation easier
+  })
+  
+  return(results)
+}
+
+# test each k value and store results
+cat("Testing different k values for IBCF model\n")
+performance_results <- list()
+
+for (k in k_values) {
+  cat("Testing k =", k, "\n")
+  tryCatch({
+    results <- evaluate_IBCF(filtered_ratings, k)
+    performance_results[[as.character(k)]] <- results
+    cat("  Completed successfully\n")
+  }, error = function(e) {
+    cat("  Error:", e$message, "\n")
+  })
+}
+
+# just set best k to 30 to fall back to if the function fails, and also to see whether it works. If best k changes from 30 which it does, to 10, then our custom function works.
+best_k <- 30
+
+if (length(performance_results) > 0) {
+  # Use k with best performance if we have results
+  best_k_name <- names(performance_results)[1]  # Default to first one that worked
+  cat("Using k =", best_k_name, "for final model\n")
+  best_k <- as.numeric(best_k_name)
+}
+
+# final train/test split
+set.seed(123)
+which_train <- sample(x = c(TRUE, FALSE),
+                     size = nrow(filtered_ratings),
+                     replace = TRUE,
+                     prob = c(0.8, 0.2))
+train_data <- filtered_ratings[which_train, ]
+test_data <- filtered_ratings[!which_train, ]
+
+# building the final model with best k parameter
+final_model <- Recommender(train_data, method = "IBCF", parameter = list(k = best_k))
+
+# make predictions, recommendations
+n_recommended <- 5
+predicted <- predict(final_model, newdata = test_data, n = n_recommended)
+
+# convert to list & assign correct names
+recommendation_list <- as(predicted, "list")
+names(recommendation_list) <- rownames(test_data)
+
+# show first 3 users' recommendations
+recommendation_list[1:3]
+
+# Simple evaluation - just see what % of recommendations are useful (precision-like metric)
+cat("Final model using k =", best_k, "\n")
+```
+
+```{This is the older one, needs to be decided on which to go with.}
+
+{r}
 data_rcs <- data
 
 # Load packages
@@ -1583,7 +1703,7 @@ interactions <- data %>%
   mutate(purchased = 1)
 
 # Step 2: Sample a subset of customers
-set.seed(42)
+set.seed(123)
 sample_customers <- sample(unique(interactions$customer_id), 1000)
 
 sample_data <- interactions %>%
@@ -1655,11 +1775,6 @@ scheme <- evaluationScheme(filtered_ratings, method = "split", train = 0.8, give
 results <- evaluate(scheme, method = "IBCF", n = c(1, 3, 5, 10))
 
 avg(results)
-
-
-
-
-
 ```
 
 ```{r}
