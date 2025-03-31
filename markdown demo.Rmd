@@ -1188,10 +1188,10 @@ library(dplyr)
 library(lubridate)
 
 #getting the clv data neccesary
-clv_data <- data %>%
+clv_data <- order_level_data %>%
   group_by(customer_id) %>%
   dplyr::summarise(
-    sales = revenue,  
+    sales = total_revenue,  
     date = date  
   ) %>%
   ungroup()
@@ -1225,7 +1225,7 @@ clv_data <- clv_data %>%
     #### BTYD prepping data final
     
           end.of.cal.period <- as.Date("2024-09-01")
-          data_btyd_recency <- dc.ElogToCbsCbt(data_btyd, per="day", T.cal = end.of.cal.period,  statistic = "freq") 
+          data_btyd_recency <- dc.ElogToCbsCbt(data_btyd, per="week", T.cal = end.of.cal.period,  statistic = "freq") 
           cal.cbs <- as.matrix(data_btyd_recency[[1]][[1]])
           variable.names(cal.cbs)
         
@@ -1426,6 +1426,38 @@ Scatterplot compares each customer's predicted clv using BG/NBD and gamma-gamma 
 positive trend - indicates model is able to capture the overall relationship between predicted and actual value - customers with higher pred.clv tend to spend more - this is what we should expect as customers with a high real clv are spending more at the retailer such as jysk
 
 dispersion - for customers with lower pred.clv. Some of these are high value because their real clv is high (nearing top left corner of the plot) This could mean that the model underestimates a small group of high-spending customers or these customers may have unpredictable spending patterns
+
+```{r metrrics fro the CLV}
+mean(cal.cbs.gamma.test$CLV.pred.bg, na.rm = TRUE)
+mean(cal.cbs.gamma.test$CLV.real, na.rm = TRUE)
+
+
+```
+1. Day freq : Predicted and Real:
+[1] 36.21924
+[1] 77.50999
+
+2. Week freq: Predicted and Real:
+[1] 36.21957
+[1] 77.50999
+
+3. Motnh freq: Predicted and Real:
+[1] 36.21965
+[1] 77.50999
+
+
+AFter order level aggregation:
+1. Day freq : Predicted and Real:
+[1] 54.50173
+[1] 77.50999
+
+2. Week freq: Predicted and Real:
+[1] 54.50184
+[1] 77.50999
+
+3. Month freq: Predicted and Real:
+[1] 54.50194
+[1] 77.50999
 
 ## Association Rules Mining
 
