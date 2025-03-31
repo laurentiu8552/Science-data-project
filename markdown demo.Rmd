@@ -1,4 +1,4 @@
-### JYSK case competition
+### JYSK / s360 case competition
 
 ```{r Libraries necessary}
 library(tidyverse)
@@ -1478,7 +1478,13 @@ skim(data_asm)
 
 ```{r Association - preparing the transaction dataframe}
 transacData <- plyr::ddply(data_asm, c("order_id","date"),
-                           function(df1)paste(df1$product_title,collapse = ","))
+                           function(df1){
+                             # wrap each product title in double quotes
+                             titles <- paste0('"', df1$product_title, '"')
+                             paste(titles,collapse = ";")
+                             
+                             }) 
+#changed delimiter from "," to ";" as some product titles contains ","
 
 
 head(transacData)
@@ -1490,7 +1496,10 @@ transacData$date <- NULL
 colnames(transacData) <- c("items")
 head(transacData)
 
-basket_list <- strsplit(transacData$items, ",")
+basket_list <- strsplit(transacData$items, ";")
+
+# remove leading/trainling whitespace and surroundind quotes
+basket_list <- lapply(basket_list, function(x) trimws(gsub('^"|"$', '', x)))
 
 library(arules)
 tr <- as(basket_list, "transactions")
@@ -1501,9 +1510,12 @@ summary(tr)
 
 ```{r PLot for the top 20 relative and absolute items frequency}
 library(RColorBrewer)
-itemFrequencyPlot(tr,topN=25,type="absolute",col=brewer.pal(8,'Pastel2'), 
+
+# top 10 most frequently bought items
+itemFrequencyPlot(tr,topN=5,type="absolute",col=brewer.pal(8,'Pastel2'), 
                   main="Absolute Item Frequency Plot")
 
+# top 25 most frequently bought items
 itemFrequencyPlot(tr,topN=25,type="relative",col=brewer.pal(8,'Pastel2'),
                   main="Relative Item Frequency Plot")
 
@@ -1513,6 +1525,10 @@ itemFrequencyPlot(tr,topN=25,type="relative",col=brewer.pal(8,'Pastel2'),
     PIL 750g TRONFJELLET 50x70cm: 1188 BTH ENGBLOMME 220x240 rose" 1050
 
 ```{r confidence 0.8  and support 0.001}
+# We set support >= 0.1% of all transactions - A rule should occur in approx. 163 orders
+# we set confidence >= 80%
+# A rule can at most contain 10 items
+# This is likely a very strict rule and we expect very few itemsets to pass this filter
 
 association.rules <- apriori(tr, 
                              parameter = list(supp=0.001, conf=0.8,maxlen=10))
@@ -1529,11 +1545,49 @@ sortedRules1 <- sort(association.rules,by="lift",decreasing=TRUE)
 inspect(sortedRules1) 
 ```
 
--   At 0.8 confidence 3 rules were found: {MA 60x186x12} =\> {5cm PLUS F15 chair} {5cm PLUS F15 chair} =\> {MA 60x186x12} {Back cushion DUNHAMMER 35x75 beige} =\> {BTH DUNHAMMER 220x240 beige}
+-   We see that 1 rule passed the filters of confidence = 0,8, support = 0,001
 
-The first 3 in particular have a lift of 776 indicating a strong relationship of the items bought together
+-   This means that most of items aren't purchased enough together to exceed these thresholds
+
+-   When a customer buys "Back cushion DUNHAMMER 35x75 beige" then they are also likely to buy "BTH DUNHAMMER 220x240 beige"
+
+-   support
+
+-   The support for this rule appears in 0,15% of all transactions (244 orders out of 163,765)
+
+-   confidence
+
+-   in 80,5% of the cases where someone bought the cushion, they also bought the throw/blanket
+
+-   Coverage
+
+-   onl 0,185% of orders contain the cushion
+
+-   Lift
+
+-   The lift of this rule is = 168,4 and is \> 1 which indicates a strong association.
+
+-   When a customer purchases the cushion then there is an increased likelihood that they
+
+-   will also purchase the blanket and that the pair is not a coincidence
+
+-   The product title indicates that they are most likely part of the same product line
+
+-   named DUNHAMMER, and customers often purchase such goods together
+
+-   Some recommendations
+
+-   use this insight in recommendation models/engines on the website, so customers
+
+-   are recommened one of these products when they look at the other
+
+-   Plan in-store shelf placement: Put products from the same product line near each other
+
+-   such as this pair to make the co-purchase easier for customers
 
 ```{r 0.6 confidence and support 0.0005}
+# we now relax the thresholds, so confidence = 0,6
+# support = 0,0005 (approx. 85 orders where a rule must be present)
 
 relaxed.rules <- apriori(tr, 
                              parameter = list(supp=0.0005, conf=0.6,maxlen=10))
@@ -1547,7 +1601,43 @@ inspect(sortedRules2)
 
 ```
 
--   Due to the relaxed support and confidence now a list of 17 of items bought together.
+-   Due to the relaxed support and confidence now a list of 13 of items bought together.
+
+-   the strongest rule based on a lift above 1000 is when customers purchase a bowl set and a large sized plate set
+
+-   then they are also likely to purchase a medium sized plate set. These 3 items all come from the same product line "FERDUS"
+
+-   The support for this rule is 0,00052 and occurs in 85 orders.
+
+-   The confidence = 88,5% is high, so when those two items are bought togeter, the third item is
+
+-   almost always included
+
+-   Patterns
+
+-   FERDUS plates/bowls belong to the same product line/series - a dinnerware set
+
+-   it thus makes sense to bundle these products or upsell them
+
+-   We also notice that being either the medium plate or the large plate in isolation leads
+
+-   to customers purchasing the other as well with lifts at 954 and 889 respectively.
+
+-   Looking at another product series, we see that when customers purchase the MALUNG towels they
+
+-   are also likely to purchase them in different colours, (dark, grey) -\> (beige) and opposite
+
+-   DUNHAMMER and ENGBLOMME cushions lead to purchase of blankets from same brand as well
+
+-   indicates co-purchase within the product series
+
+-   Opportunities
+
+-   Offer bundling of 3 items that are often bought together such as fx. dinnerware like FERDUS
+
+-   Promote/advertise a "look" with product series such as the FERDUS dinnerware, MALUNG towels
+
+-   and DUNHAMMER / ENGBLOMME series
 
 ```{r plot for rules with confidence above 0.4 }
 
@@ -1556,26 +1646,48 @@ subRules <- relaxed.rules[quality(relaxed.rules)$confidence > 0.4]
 plot(subRules)
 ```
 
--   The plot provides the situation of the 17 rules found previously and mapping them on the scale of confidence and support, the best ones are the ones situated at the highest confidence and highest support
+-   The plot provides the situation of the 13 rules found previously and mapping them on the scale of confidence and support, the best ones are the ones situated at the highest confidence and highest support area to the top right. The least effective rules are in the bottom left corner where confidence and support is at their lowest or near the threshold.
 
-```{r plot for 17 rules and their respective confidence and support}
+-   we see most rules move on the confidence axis but are less able to move on the support axis, which is likely due to the high amount of orders in the dataset. The lift is indicated by the color intensity of the dots. The one rule identified with the strict thresholds are identified in the top right corner of high confidence and high support, but with lower lift.
+
+```{r plot for 13 rules and their respective confidence and support}
 # interactive plot
 
 plot(subRules, method = "two-key plot")
 
 ```
 
--   The plot provides a representation of the order 2 and 3 rules. THe order 3 ones are clearly low in support and lower in confidence compared the order 2 ones.
+-   The plot provides a representation of the order 2 and 3 rules.
+-   Order 2: Rules that involve 2 items: A -\> B
+-   Order 3: Rules that involve 3 items: A,B -\> C
+
+The order 3 ones are clearly low in support and lower in confidence compared the order 2 ones, indicating that order 2 rules are stronger. We also notice the 1 very strong rule that was identified with the strict threshold, which is scoring above 0,8 in confidence and near 0,0015 in support to the far right.
 
 ```{r plotting on the html widget library}
 
-top10subRules <- head(subRules, n = 10, by = "confidence")
+top10subRules <- head(subRules, n = 13, by = "confidence")
 plot(top10subRules, method = "graph",  engine = "htmlwidget")
 ```
 
--   The plot shows a clear interrelationship between the top 5 order 3 rules. Their confidence is above 0.6, but a high lift around 700 - it provides insights into plate and bowl products
--   A circular relationship with a high lift and confidence is seen in the products MA 60x186x12 and 5cm PLUS F15 chair.
--   Additionally a relationship which point to the same bought product {Basket INFINITY 4} happens upon the purchase of {5L plastic white} and {5L plastic grey}. The rules are high in lift around 1000 and with a confidence of 1.
+-   Clusters:
+
+-   FERDUS cluster in the center - suggests a product line with interrelated rules
+
+-   We see that arrows go in both directions, which could indicate that products are strongly associated
+
+-   regardless of the order they are purchased in - this could benefit from promoting a "buy together" campaign
+
+-   Separate clusters:
+
+-   DUNHAMMER, ENGBLOMME, MALUNG
+
+-   These are not connected to each other but have their own small ecosystems
+
+-   The relationships do not seem to go in both directions meaning that the purchase of the
+
+-   the first product is important if the other item is also bought
+
+-   example: if the cushion is purchased, then the blanket often follows, but not always the other way around
 
 ## Recommender system
 
@@ -1704,108 +1816,18 @@ test_data <- filtered_ratings[!which_train, ]
 final_model <- Recommender(train_data, method = "IBCF", parameter = list(k = best_k))
 
 # make predictions, recommendations
-n_recommended <- 5
+n_recommended <- 10
 predicted <- predict(final_model, newdata = test_data, n = n_recommended)
 
 # convert to list & assign correct names
 recommendation_list <- as(predicted, "list")
 names(recommendation_list) <- rownames(test_data)
 
-# show first 3 users' recommendations
-recommendation_list[1:3]
+# show first 5 users' recommendations
+recommendation_list[1:5]
 
 # Simple evaluation - just see what % of recommendations are useful (precision-like metric)
 cat("Final model using k =", best_k, "\n")
-```
-
-```{This is the older one, needs to be decided on which to go with.}
-
-{r}
-data_rcs <- data
-
-# Load packages
-library(dplyr)
-library(tidyr)
-library(recommenderlab)
-
-# Step 1: Create binary interaction dataset (purchases)
-interactions <- data %>%
-  dplyr::select(customer_id, product_title) %>%
-  distinct() %>%
-  mutate(purchased = 1)
-
-# Step 2: Sample a subset of customers
-set.seed(123)
-sample_customers <- sample(unique(interactions$customer_id), 1000)
-
-sample_data <- interactions %>%
-  filter(customer_id %in% sample_customers)
-
-# Step 3: Filter to top 100 most purchased products
-top_products <- sample_data %>%
-  dplyr::count(product_title, sort = TRUE) %>%
-  slice_head(n = 100) %>%
-  pull(product_title)
-
-sample_data <- sample_data %>%
-  filter(product_title %in% top_products)
-
-# Step 4: Create wide user-product matrix (1 = purchased)
-interaction_matrix <- sample_data %>%
-  tidyr::pivot_wider(
-    names_from = product_title,
-    values_from = purchased,
-    values_fill = list(purchased = 0)
-  )
-
-# Step 5: Convert to matrix format
-customer_ids <- interaction_matrix$customer_id
-interaction_matrix <- interaction_matrix %>% dplyr::select(-customer_id)
-mat <- as.matrix(interaction_matrix)
-rownames(mat) <- customer_ids
-
-# Step 6: Convert to binaryRatingMatrix
-binary_ratings <- as(mat, "binaryRatingMatrix")
-
-
-# remove sparse customers/products
-# Keep customers with more 
-filtered_ratings <- binary_ratings[rowCounts(binary_ratings) > 2, colCounts(binary_ratings) > 5]
-
-# train/test split
-set.seed(42)
-which_train <- sample(x = c(TRUE, FALSE),
-                      size = nrow(filtered_ratings),
-                      replace = TRUE,
-                      prob = c(0.8, 0.2))
-
-train_data <- filtered_ratings[which_train, ]
-test_data <- filtered_ratings[!which_train, ]
-
-# Restore customer IDs for test set
-rownames(test_data) <- rownames(filtered_ratings)[!which_train]
-
-# Build model
-recommender_model <- Recommender(train_data, method = "IBCF", parameter = list(k = 30))
-
-# Predict
-n_recommended <- 5
-predicted <- predict(recommender_model, newdata = test_data, n = n_recommended)
-
-# Convert to list & assign correct names
-recommendation_list <- as(predicted, "list")
-names(recommendation_list) <- rownames(test_data)
-
-
-# Show first 3 users’ recommendations
-recommendation_list[1:3]
-
-# evaluate model performance
-scheme <- evaluationScheme(filtered_ratings, method = "split", train = 0.8, given = -1)
-
-results <- evaluate(scheme, method = "IBCF", n = c(1, 3, 5, 10))
-
-avg(results)
 ```
 
 ```{r}
@@ -1830,8 +1852,4 @@ final_output <- recommendation_df %>%
 print(table(final_output$segment))
 
 view(final_output)
-
-
-
-
 ```
