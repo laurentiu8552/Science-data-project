@@ -1798,8 +1798,6 @@ recommendation_list[1:5]
 cat("Final model using k =", best_k, "\n")
 ```
 
-
-
 ```{r}
 # Filter RFM to match recommendation users
 rfm_sample <- segment %>%
